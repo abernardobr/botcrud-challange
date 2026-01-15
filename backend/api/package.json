@@ -1,6 +1,6 @@
 {
   "name": "@abernardo/api-client",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "TypeScript API client for BotCRUD Backend - Works in Node.js and Browser",
   "type": "module",
   "main": "./dist/bundle.cjs",
