@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm install)",
+      "Bash(timeout 5 node:*)",
+      "Bash(npm test:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(xargs:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx quasar info)",
+      "Bash(npm install:*)",
+      "Bash(quasar info:*)",
+      "Bash(ls:*)",
+      "Bash(npm publish)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node generate-seed-data.js:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

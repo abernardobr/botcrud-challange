@@ -1,0 +1,154 @@
+// Quasar variables (custom theme)
+$primary: #6366f1;
+$secondary: #8b5cf6;
+$accent: #a855f7;
+$dark: #13131a;
+$dark-page: #0f0f14;
+$positive: #10b981;
+$negative: #ef4444;
+$info: #3b82f6;
+$warning: #f59e0b;
+
+// Global styles
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+// Smooth transitions for dark mode
+.q-layout,
+.q-page-container,
+.q-drawer,
+.q-header,
+.q-card {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Card styles
+.bot-card,
+.worker-card,
+.log-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Status badges
+.status-badge {
+  &.enabled {
+    background-color: $positive;
+    color: white;
+  }
+  &.disabled {
+    background-color: $negative;
+    color: white;
+  }
+  &.paused {
+    background-color: $warning;
+    color: black;
+  }
+}
+
+// Table styles
+.data-table {
+  .q-table__top {
+    padding: 16px;
+  }
+
+  .q-table__bottom {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+// Custom scrollbar for webkit browsers
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Dark mode scrollbar
+.body--dark {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+// Page container padding
+.page-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+// Empty state
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+
+  .empty-icon {
+    font-size: 64px;
+    opacity: 0.5;
+    margin-bottom: 16px;
+  }
+}
+
+// Action buttons group
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+// Responsive utilities
+@media (max-width: 599px) {
+  .page-container {
+    padding: 16px;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+// Animation classes
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// Loading overlay
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}

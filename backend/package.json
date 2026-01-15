@@ -1,0 +1,43 @@
+{
+  "name": "botcrud-backend",
+  "version": "1.0.0",
+  "description": "RESTful API for Bots, Workers, and Logs management",
+  "main": "start.js",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "nodemon start.js",
+    "test": "mocha --recursive tests/"
+  },
+  "keywords": [
+    "bot",
+    "worker",
+    "log",
+    "rest",
+    "api",
+    "hapi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@hapi/hapi": "^21.3.2",
+    "@hapi/inert": "^7.1.0",
+    "@hapi/vision": "^7.0.3",
+    "hapi-swagger": "^17.2.1",
+    "joi": "^17.11.0",
+    "lodash": "^4.17.21",
+    "mongoose": "^8.0.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "chai": "^4.3.10",
+    "chai-http": "^4.4.0",
+    "mocha": "^10.2.0",
+    "mongodb-memory-server": "^9.1.4",
+    "nodemon": "^3.0.2",
+    "sinon": "^17.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

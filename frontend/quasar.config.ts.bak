@@ -1,0 +1,92 @@
+import { configure } from 'quasar/wrappers';
+
+export default configure((/* ctx */) => {
+  return {
+    eslint: {
+      warnings: true,
+      errors: true,
+    },
+
+    boot: ['i18n', 'api'],
+
+    css: ['app.scss'],
+
+    extras: [
+      'roboto-font',
+      'material-icons',
+      'material-symbols-outlined',
+    ],
+
+    build: {
+      target: {
+        browser: ['es2019', 'edge88', 'firefox78', 'chrome87', 'safari13.1'],
+        node: 'node18',
+      },
+
+      vueRouterMode: 'history',
+
+      vitePlugins: [
+        [
+          'vite-plugin-checker',
+          {
+            vueTsc: {
+              tsconfigPath: 'tsconfig.vue-tsc.json',
+            },
+            eslint: {
+              lintCommand: 'eslint "./**/*.{js,ts,mjs,cjs,vue}"',
+            },
+          },
+          { server: false },
+        ],
+      ],
+    },
+
+    devServer: {
+      open: true,
+    },
+
+    framework: {
+      config: {
+        dark: 'auto',
+        brand: {
+          primary: '#1976D2',
+          secondary: '#26A69A',
+          accent: '#9C27B0',
+          dark: '#1d1d1d',
+          'dark-page': '#121212',
+          positive: '#21BA45',
+          negative: '#C10015',
+          info: '#31CCEC',
+          warning: '#F2C037',
+        },
+      },
+
+      plugins: [
+        'Dark',
+        'Notify',
+        'Dialog',
+        'Loading',
+        'LocalStorage',
+        'SessionStorage',
+      ],
+    },
+
+    animations: ['fadeIn', 'fadeOut', 'slideInLeft', 'slideOutRight'],
+
+    capacitor: {
+      hideSplashscreen: true,
+    },
+
+    electron: {
+      inspectPort: 5858,
+
+      bundler: 'packager',
+
+      packager: {},
+
+      builder: {
+        appId: 'botcrud-frontend',
+      },
+    },
+  };
+});
