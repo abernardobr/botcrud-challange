@@ -1,11 +1,11 @@
 <template>
-  <q-card class="log-card" @click="$emit('click', log)">
+  <q-card class="log-card" :data-testid="`log-card-${log.id}`" @click="$emit('click', log)">
     <q-card-section class="log-card__content">
       <div class="log-card__icon">
         <q-icon name="description" size="24px" />
       </div>
       <div class="log-card__info">
-        <p class="log-card__message">{{ log.message }}</p>
+        <p class="log-card__message" data-testid="log-message">{{ log.message }}</p>
         <div class="log-card__meta">
           <span v-if="botName" class="log-card__meta-item">
             <q-icon name="smart_toy" size="14px" />

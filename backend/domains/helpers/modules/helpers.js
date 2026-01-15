@@ -13,13 +13,13 @@ const _ = require('lodash');
  * These should never be allowed in user-provided queries
  */
 const DANGEROUS_OPERATORS = [
-  '$where',      // Executes JavaScript
-  '$function',   // Executes JavaScript (MongoDB 4.4+)
+  '$where', // Executes JavaScript
+  '$function', // Executes JavaScript (MongoDB 4.4+)
   '$accumulator', // Executes JavaScript in aggregation
-  '$expr',       // Can be used for injection in some contexts
+  '$expr', // Can be used for injection in some contexts
   '$jsonSchema', // Can cause DoS with complex schemas
-  '$text',       // Can be expensive, should be controlled
-  '$geoNear',    // Should be controlled for performance
+  '$text', // Can be expensive, should be controlled
+  '$geoNear', // Should be controlled for performance
 ];
 
 /**
@@ -63,7 +63,7 @@ class ModuleBase {
     const {
       allowedOperators = [],
       allowedFields = null,
-      maxDepth = 10
+      maxDepth = 10,
     } = options;
 
     const allAllowedOperators = [...SAFE_OPERATORS, ...allowedOperators];
@@ -90,7 +90,7 @@ class ModuleBase {
 
       // Handle arrays
       if (Array.isArray(obj)) {
-        return obj.map(item => sanitize(item, depth + 1));
+        return obj.map((item) => sanitize(item, depth + 1));
       }
 
       // Handle Date objects
@@ -166,8 +166,8 @@ class ModuleBase {
    * @returns {string} Error message
    */
   _errMessage(err) {
-    if (err.message) return err.message;
-    if (typeof err === 'string') return err;
+    if (err.message) {return err.message;}
+    if (typeof err === 'string') {return err;}
     return 'An unexpected error occurred';
   }
 
@@ -193,7 +193,7 @@ class ModuleBase {
     return {
       statusCode: 200,
       message: message || 'Success',
-      data
+      data,
     };
   }
 
@@ -226,7 +226,7 @@ class ControllerBase {
     return {
       statusCode: 200,
       message: message || 'Success',
-      data
+      data,
     };
   }
 
@@ -307,5 +307,5 @@ class ControllerBase {
 
 module.exports = {
   ModuleBase,
-  ControllerBase
+  ControllerBase,
 };

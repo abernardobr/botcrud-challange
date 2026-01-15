@@ -258,12 +258,10 @@ import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
 import { saveFilterHistory } from 'src/utils/filter-history';
+import { useDateTime } from 'src/composables/useDateTime';
 
-const { t, locale } = useI18n();
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
+const { t } = useI18n();
+const { formatNumber } = useDateTime();
 
 const $q = useQuasar();
 const router = useRouter();
@@ -418,10 +416,10 @@ async function saveLog() {
       });
     }
     closeDialog();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   } finally {
     saving.value = false;
@@ -431,10 +429,10 @@ async function saveLog() {
 async function loadMore() {
   try {
     await logsStore.loadMoreLogs();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -458,10 +456,10 @@ async function handleFilterApply(filter: FilterQuery, explanation: string) {
         ? t('queryBuilder.filterApplied', { count: logsStore.logCount })
         : t('queryBuilder.filterCleared'),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -487,10 +485,10 @@ async function loadData() {
       botsStore.fetchBots(),
       workersStore.fetchWorkers(),
     ]);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }

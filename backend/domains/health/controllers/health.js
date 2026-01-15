@@ -20,8 +20,8 @@ class HealthController {
       data: {
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        service: process.env.SERVICE_NAME || 'botcrud-api'
-      }
+        service: process.env.SERVICE_NAME || 'botcrud-api',
+      },
     };
   }
 
@@ -32,13 +32,13 @@ class HealthController {
     const [botsCount, workersCount, logsCount] = await Promise.all([
       Bot.countDocuments(),
       Worker.countDocuments(),
-      Log.countDocuments()
+      Log.countDocuments(),
     ]);
 
     const stats = {
       bots: botsCount,
       workers: workersCount,
-      logs: logsCount
+      logs: logsCount,
     };
 
     return {
@@ -51,8 +51,8 @@ class HealthController {
         environment: process.env.ENVIRONMENT || 'development',
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        stats
-      }
+        stats,
+      },
     };
   }
 }
@@ -70,8 +70,8 @@ module.exports = {
         handler: controller.check.bind(controller),
         description: 'Health check',
         notes: 'Returns the health status of the service',
-        tags: ['api', 'health']
-      }
+        tags: ['api', 'health'],
+      },
     },
     {
       method: 'GET',
@@ -81,8 +81,8 @@ module.exports = {
         handler: controller.detailed.bind(controller),
         description: 'Detailed health check',
         notes: 'Returns detailed health status including stats and memory usage',
-        tags: ['api', 'health']
-      }
-    }
-  ]
+        tags: ['api', 'health'],
+      },
+    },
+  ],
 };

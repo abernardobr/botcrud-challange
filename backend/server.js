@@ -11,6 +11,7 @@ const Vision = require('@hapi/vision');
 const HapiSwagger = require('hapi-swagger');
 const config = require('./config');
 const mongodb = require('./data/mongodb');
+const { sanitizerPlugin } = require('./domains/helpers');
 
 class Server {
   #hapiServer = null;
@@ -33,8 +34,8 @@ class Server {
         host: this.#config.server.host,
         port: this.#config.server.port,
         routes: {
-          cors: this.#config.server.routes.cors
-        }
+          cors: this.#config.server.routes.cors,
+        },
       });
 
       // Register plugins
@@ -63,9 +64,17 @@ class Server {
       Vision,
       {
         plugin: HapiSwagger,
-        options: this.#config.swagger.options
-      }
+        options: this.#config.swagger.options,
+      },
     ]);
+
+    // XSS Sanitization plugin
+    await this.#hapiServer.register({
+      plugin: sanitizerPlugin,
+      options: {
+        textFields: ['name', 'description', 'message'],
+      },
+    });
 
     console.log('[Server] Plugins registered');
   }
@@ -76,7 +85,7 @@ class Server {
   #registerRoutes() {
     const routes = require('./routes');
 
-    routes.forEach(route => {
+    routes.forEach((route) => {
       // Apply default CORS if not specified
       if (!route.config.cors) {
         route.config.cors = this.#config.server.routes.cors;

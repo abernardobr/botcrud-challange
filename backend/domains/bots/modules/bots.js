@@ -51,7 +51,7 @@ class BotsModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['name', 'description', 'status', 'created']
+        allowedFields: ['name', 'description', 'status', 'created'],
       });
 
       // Start with the sanitized filter
@@ -83,7 +83,7 @@ class BotsModule extends ModuleBase {
         const botId = bot._id.toString();
         const [workersCount, logsCount] = await Promise.all([
           Worker.countByBot(botId),
-          Log.countByBot(botId)
+          Log.countByBot(botId),
         ]);
 
         return {
@@ -93,7 +93,7 @@ class BotsModule extends ModuleBase {
           status: bot.status,
           created: bot.created.getTime(),
           workersCount,
-          logsCount
+          logsCount,
         };
       }));
 
@@ -101,7 +101,7 @@ class BotsModule extends ModuleBase {
         count,
         items,
         page: pageNum,
-        perPage: perPageNum
+        perPage: perPageNum,
       };
     } catch (err) {
       this._throw(err);
@@ -129,7 +129,7 @@ class BotsModule extends ModuleBase {
         name: bot.name,
         description: bot.description,
         status: bot.status,
-        created: bot.created.getTime()
+        created: bot.created.getTime(),
       };
     } catch (err) {
       this._throw(err);
@@ -159,7 +159,7 @@ class BotsModule extends ModuleBase {
       const bot = new Bot({
         name,
         description: description || null,
-        status: status || 'DISABLED'
+        status: status || 'DISABLED',
       });
 
       await bot.save();
@@ -169,7 +169,7 @@ class BotsModule extends ModuleBase {
         name: bot.name,
         description: bot.description,
         status: bot.status,
-        created: bot.created.getTime()
+        created: bot.created.getTime(),
       };
     } catch (err) {
       // Handle MongoDB duplicate key error
@@ -230,7 +230,7 @@ class BotsModule extends ModuleBase {
         name: bot.name,
         description: bot.description,
         status: bot.status,
-        created: bot.created.getTime()
+        created: bot.created.getTime(),
       };
     } catch (err) {
       if (err.code === 11000) {
@@ -242,8 +242,9 @@ class BotsModule extends ModuleBase {
 
   /**
    * Delete a bot by ID
+   * Cascades deletion to all associated workers and logs
    * @param {string} id - Bot ID
-   * @returns {Object} Deleted bot
+   * @returns {Object} Deleted bot with counts of deleted related items
    */
   async deleteById(id) {
     try {
@@ -256,12 +257,13 @@ class BotsModule extends ModuleBase {
         this._notFound('Bot', id);
       }
 
-      // Check if bot has associated workers
-      const workerCount = await Worker.countByBot(id);
-      if (workerCount > 0) {
-        throw Boom.conflict(`Cannot delete bot. It has ${workerCount} associated worker(s). Delete workers first.`);
-      }
+      // Cascade delete: remove all logs for this bot first
+      const logsDeleted = await Log.deleteMany({ bot: id });
 
+      // Then remove all workers for this bot
+      const workersDeleted = await Worker.deleteMany({ bot: id });
+
+      // Finally delete the bot
       await Bot.findByIdAndDelete(id);
 
       return {
@@ -269,7 +271,9 @@ class BotsModule extends ModuleBase {
         name: bot.name,
         description: bot.description,
         status: bot.status,
-        created: bot.created.getTime()
+        created: bot.created.getTime(),
+        deletedWorkers: workersDeleted.deletedCount,
+        deletedLogs: logsDeleted.deletedCount,
       };
     } catch (err) {
       this._throw(err);
@@ -298,7 +302,7 @@ class BotsModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['name', 'description', 'created']
+        allowedFields: ['name', 'description', 'created'],
       });
 
       // Build query with bot ID (trusted) and sanitized filter
@@ -308,12 +312,12 @@ class BotsModule extends ModuleBase {
         .sort({ created: -1 })
         .lean();
 
-      return workers.map(worker => ({
+      return workers.map((worker) => ({
         id: worker._id.toString(),
         name: worker.name,
         description: worker.description,
         bot: worker.bot.toString(),
-        created: worker.created.getTime()
+        created: worker.created.getTime(),
       }));
     } catch (err) {
       this._throw(err);
@@ -342,7 +346,7 @@ class BotsModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['message', 'worker', 'created']
+        allowedFields: ['message', 'worker', 'created'],
       });
 
       // Build query with bot ID (trusted) and sanitized filter
@@ -352,12 +356,12 @@ class BotsModule extends ModuleBase {
         .sort({ created: -1 })
         .lean();
 
-      return logs.map(log => ({
+      return logs.map((log) => ({
         id: log._id.toString(),
         message: log.message,
         bot: log.bot.toString(),
         worker: log.worker.toString(),
-        created: log.created.toISOString()
+        created: log.created.toISOString(),
       }));
     } catch (err) {
       this._throw(err);

@@ -1,5 +1,5 @@
 <template>
-  <q-card class="bot-card" @click="$emit('click', bot)">
+  <q-card class="bot-card" :data-testid="`bot-card-${bot.id}`" @click="$emit('click', bot)">
     <q-card-section class="bot-card__content">
       <!-- Icon and Status Row -->
       <div class="bot-card__header">
@@ -8,6 +8,7 @@
         </div>
         <q-badge
           :class="['bot-card__status', `bot-card__status--${bot.status.toLowerCase()}`]"
+          :data-testid="`bot-status-${bot.status.toLowerCase()}`"
         >
           <span class="bot-card__status-dot"></span>
           {{ statusLabel }}
@@ -16,8 +17,8 @@
 
       <!-- Bot Info -->
       <div class="bot-card__info">
-        <h3 class="bot-card__name">{{ bot.name }}</h3>
-        <p v-if="bot.description" class="bot-card__description">
+        <h3 class="bot-card__name" data-testid="bot-name">{{ bot.name }}</h3>
+        <p v-if="bot.description" class="bot-card__description" data-testid="bot-description">
           {{ bot.description }}
         </p>
       </div>

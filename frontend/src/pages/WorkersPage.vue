@@ -170,12 +170,10 @@ import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
 import { saveFilterHistory } from 'src/utils/filter-history';
+import { useDateTime } from 'src/composables/useDateTime';
 
-const { t, locale } = useI18n();
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
+const { t } = useI18n();
+const { formatNumber } = useDateTime();
 
 const $q = useQuasar();
 const router = useRouter();
@@ -196,10 +194,11 @@ const totalBots = computed(() => botsStore.pagination.count);
 const totalLogs = computed(() => logsStore.pagination.count);
 
 // Workers with logs count from backend
+type WorkerWithCounts = typeof workersStore.workers[0] & { logsCount?: number };
 const workersWithStats = computed(() => {
   return workersStore.workers.map(worker => ({
     ...worker,
-    logsCount: (worker as any).logsCount ?? 0,
+    logsCount: (worker as WorkerWithCounts).logsCount ?? 0,
   }));
 });
 
@@ -224,7 +223,7 @@ function openAddWorker() {
 }
 
 function handleWorkerClick(worker: Worker) {
-  router.push({ name: 'worker-detail', params: { id: worker.id } });
+  router.push({ name: 'worker-detail', params: { id: worker.bot, workerId: worker.id } });
 }
 
 function handleWorkerSaved() {
@@ -234,10 +233,10 @@ function handleWorkerSaved() {
 async function loadMore() {
   try {
     await workersStore.loadMoreWorkers();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -261,10 +260,10 @@ async function handleFilterApply(filter: FilterQuery, explanation: string) {
         ? t('queryBuilder.filterApplied', { count: workersStore.workerCount })
         : t('queryBuilder.filterCleared'),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -290,10 +289,10 @@ async function loadData() {
       botsStore.fetchBots(),
       logsStore.fetchLogs(),
     ]);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }

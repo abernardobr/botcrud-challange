@@ -2,42 +2,24 @@
   <q-page class="home-page">
     <!-- Header -->
     <header class="home-header">
-      <h1 class="home-title">{{ t('home.title') }} ({{ formatNumber(totalBots) }})</h1>
+      <h1 class="home-title" data-testid="home-title">{{ t('home.title') }} ({{ formatNumber(totalBots) }})</h1>
       <q-btn
         flat
         round
         icon="settings"
         @click="showSettings = true"
         class="settings-btn"
+        data-testid="settings-btn"
       />
     </header>
 
     <!-- Stats Bar -->
-    <div class="stats-bar">
-      <div class="stats-items">
-        <div class="stat-item">
-          <span class="stat-value">{{ formatNumber(totalBots) }}</span>
-          <span class="stat-label">{{ t('menu.bots') }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item clickable" @click="router.push({ name: 'workers' })">
-          <span class="stat-value">{{ formatNumber(totalWorkers) }}</span>
-          <span class="stat-label">{{ t('workers.title') }}</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item clickable" @click="router.push({ name: 'logs' })">
-          <span class="stat-value">{{ formatNumber(totalLogs) }}</span>
-          <span class="stat-label">{{ t('logs.title') }}</span>
-        </div>
-      </div>
-      <q-btn
-        flat
-        icon="bar_chart"
-        :label="t('home.statistics')"
-        class="stats-btn"
-        @click="goToStatistics"
-      />
-    </div>
+    <HomeStats
+      :bots-count="totalBots"
+      :workers-count="totalWorkers"
+      :logs-count="totalLogs"
+      @navigate="handleStatsNavigate"
+    />
 
     <!-- Bots Section -->
     <section class="bots-section">
@@ -49,6 +31,7 @@
             icon="add"
             :label="t('home.addBot')"
             class="add-bot-btn"
+            data-testid="add-bot-btn"
             @click="openAddBot"
           />
           <q-btn
@@ -56,6 +39,7 @@
             :outline="!botsStore.hasActiveFilter"
             icon="filter_list"
             class="filter-btn"
+            data-testid="filter-btn"
             @click="openFilter"
           >
             <q-badge
@@ -77,13 +61,13 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="botsStore.loading && !botsStore.bots.length" class="loading-state">
+      <div v-if="botsStore.loading && !botsStore.bots.length" class="loading-state" data-testid="loading-state">
         <q-spinner-dots size="40px" color="primary" />
         <p>{{ t('common.loading') }}</p>
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="!botsStore.bots.length" class="empty-state">
+      <div v-else-if="!botsStore.bots.length" class="empty-state" data-testid="empty-state">
         <q-icon name="smart_toy" size="64px" class="empty-icon" />
         <h3>{{ t('home.noBots') }}</h3>
         <p>{{ t('home.createFirstBot') }}</p>
@@ -98,7 +82,7 @@
 
       <!-- Bots List -->
       <template v-else>
-        <div class="bots-list">
+        <div class="bots-list" data-testid="bots-list">
           <BotCard
             v-for="bot in botsWithStats"
             :key="bot.id"
@@ -117,6 +101,7 @@
             icon="expand_more"
             :label="t('common.loadMore')"
             :loading="botsStore.loadingMore"
+            data-testid="load-more-btn"
             @click="loadMore"
           />
         </div>
@@ -160,20 +145,18 @@ import { useQuasar } from 'quasar';
 import { useBotsStore } from 'stores/bots-store';
 import { useWorkersStore } from 'stores/workers-store';
 import { useLogsStore } from 'stores/logs-store';
-import type { Bot, FilterQuery } from '@abernardo/api-client';
+import type { Bot } from '@abernardo/api-client';
 import BotCard from 'components/BotCard.vue';
 import AddBotDrawer from 'components/AddBotDrawer.vue';
 import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
-import { saveFilterHistory } from 'src/utils/filter-history';
+import HomeStats from 'components/HomeStats.vue';
+import { useDateTime } from 'src/composables/useDateTime';
+import { useFilterManagement } from 'src/composables/useFilterManagement';
 
-const { t, locale } = useI18n();
-
-// Format number according to current locale
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
+const { t } = useI18n();
+const { formatNumber } = useDateTime();
 const $q = useQuasar();
 const router = useRouter();
 const botsStore = useBotsStore();
@@ -182,10 +165,23 @@ const logsStore = useLogsStore();
 
 const showAddBot = ref(false);
 const showSettings = ref(false);
-const showFilterDrawer = ref(false);
-const showFilterHistory = ref(false);
 const editingBot = ref<Bot | null>(null);
-const initialFilter = ref<Record<string, unknown> | undefined>(undefined);
+
+// Use filter management composable
+const {
+  showFilterDrawer,
+  showFilterHistory,
+  initialFilter,
+  handleFilterApply,
+  handleHistoryApply,
+  handleHistoryEdit,
+  openFilter,
+} = useFilterManagement({
+  storePrefix: 'bots',
+  fetchFn: (filter) => botsStore.fetchBots(undefined, true, filter),
+  getCount: () => botsStore.botCount,
+  hasActiveFilter: () => botsStore.hasActiveFilter,
+});
 
 // Total counts from pagination
 const totalBots = computed(() => botsStore.pagination.count);
@@ -193,12 +189,14 @@ const totalWorkers = computed(() => workersStore.pagination.count);
 const totalLogs = computed(() => logsStore.pagination.count);
 
 // Bots already include workersCount and logsCount from the backend
+// Extended type to include counts returned by the API
+type BotWithCounts = Bot & { workersCount?: number; logsCount?: number };
 const botsWithStats = computed(() => {
   return botsStore.bots.map(bot => ({
     ...bot,
     // Use counts from backend (already included in bot response)
-    workersCount: (bot as any).workersCount ?? 0,
-    logsCount: (bot as any).logsCount ?? 0,
+    workersCount: (bot as BotWithCounts).workersCount ?? 0,
+    logsCount: (bot as BotWithCounts).logsCount ?? 0,
   }));
 });
 
@@ -225,8 +223,8 @@ function handleBotClick(bot: Bot) {
   router.push({ name: 'bot-detail', params: { id: bot.id } });
 }
 
-function goToStatistics() {
-  router.push({ name: 'statistics' });
+function handleStatsNavigate(route: 'workers' | 'logs' | 'statistics') {
+  router.push({ name: route });
 }
 
 function handleBotSaved() {
@@ -236,53 +234,12 @@ function handleBotSaved() {
 async function loadMore() {
   try {
     await botsStore.loadMoreBots();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
-}
-
-async function handleFilterApply(filter: FilterQuery, explanation: string) {
-  try {
-    await botsStore.fetchBots(undefined, true, filter);
-
-    // Save to history if filter has content
-    if (filter && Object.keys(filter).length > 0) {
-      try {
-        await saveFilterHistory(explanation, filter);
-      } catch (historyErr) {
-        console.error('Failed to save filter history:', historyErr);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: botsStore.hasActiveFilter
-        ? t('queryBuilder.filterApplied', { count: botsStore.botCount })
-        : t('queryBuilder.filterCleared'),
-    });
-  } catch (err: any) {
-    $q.notify({
-      type: 'negative',
-      message: err.message || t('errors.generic'),
-    });
-  }
-}
-
-async function handleHistoryApply(filter: Record<string, unknown>) {
-  await handleFilterApply(filter as FilterQuery, '');
-}
-
-function handleHistoryEdit(filter: Record<string, unknown>) {
-  initialFilter.value = filter;
-  showFilterDrawer.value = true;
-}
-
-function openFilter() {
-  initialFilter.value = undefined;
-  showFilterDrawer.value = true;
 }
 
 async function loadData() {
@@ -292,10 +249,10 @@ async function loadData() {
       workersStore.fetchWorkers(),
       logsStore.fetchLogs(),
     ]);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -350,134 +307,6 @@ onMounted(() => {
   .body--dark & {
     background: rgba(255, 255, 255, 0.06);
     color: #9ca3af;
-  }
-}
-
-.stats-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 16px 20px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-
-  .body--light & {
-    background: #ffffff;
-    border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
-
-  .body--dark & {
-    background: #1e1e2d;
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-}
-
-.stats-items {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &.clickable {
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-
-    .body--light & {
-      background: rgba(99, 102, 241, 0.08);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-    }
-    .body--dark & {
-      background: rgba(129, 140, 248, 0.1);
-      border: 1px solid rgba(129, 140, 248, 0.2);
-    }
-
-    &:hover {
-      .body--light & {
-        background: rgba(99, 102, 241, 0.15);
-        border-color: rgba(99, 102, 241, 0.3);
-      }
-      .body--dark & {
-        background: rgba(129, 140, 248, 0.18);
-        border-color: rgba(129, 140, 248, 0.3);
-      }
-    }
-
-    &:active {
-      transform: scale(0.97);
-    }
-  }
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-
-  .body--light & {
-    color: #6366f1;
-  }
-  .body--dark & {
-    color: #818cf8;
-  }
-}
-
-.stat-label {
-  font-size: 13px;
-  font-weight: 500;
-
-  .body--light & {
-    color: #6b7280;
-  }
-  .body--dark & {
-    color: #9ca3af;
-  }
-}
-
-.stat-divider {
-  width: 1px;
-  height: 24px;
-
-  .body--light & {
-    background: rgba(0, 0, 0, 0.1);
-  }
-  .body--dark & {
-    background: rgba(255, 255, 255, 0.1);
-  }
-}
-
-.stats-btn {
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  text-transform: none;
-
-  .body--light & {
-    background: rgba(99, 102, 241, 0.1);
-    color: #6366f1;
-  }
-  .body--dark & {
-    background: rgba(129, 140, 248, 0.15);
-    color: #818cf8;
-  }
-
-  &:hover {
-    .body--light & {
-      background: rgba(99, 102, 241, 0.15);
-    }
-    .body--dark & {
-      background: rgba(129, 140, 248, 0.2);
-    }
   }
 }
 
@@ -609,22 +438,6 @@ onMounted(() => {
     padding: 24px 32px;
     max-width: 800px;
     margin: 0 auto;
-  }
-
-  .stats-bar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .stats-items {
-    justify-content: flex-start;
-  }
-
-  .stats-btn {
-    width: auto;
-    padding: 8px 16px;
   }
 
   .bots-list {

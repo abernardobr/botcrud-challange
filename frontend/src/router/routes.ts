@@ -40,14 +40,13 @@ const routes: RouteRecordRaw[] = [
         name: 'statistics',
         component: () => import('pages/StatisticsPage.vue'),
       },
+      // 404 catch-all route - must be inside MainLayout for QPage to work
+      {
+        path: ':catchAll(.*)*',
+        name: 'not-found',
+        component: () => import('pages/ErrorNotFound.vue'),
+      },
     ],
-  },
-
-  // Always leave this as last one,
-  // but you can also remove it
-  {
-    path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue'),
   },
 ];
 

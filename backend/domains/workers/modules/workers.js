@@ -51,7 +51,7 @@ class WorkersModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['name', 'description', 'bot', 'created']
+        allowedFields: ['name', 'description', 'bot', 'created'],
       });
 
       // Start with the sanitized filter
@@ -94,7 +94,7 @@ class WorkersModule extends ModuleBase {
           description: worker.description,
           bot: worker.bot.toString(),
           created: worker.created.getTime(),
-          logsCount
+          logsCount,
         };
       }));
 
@@ -102,7 +102,7 @@ class WorkersModule extends ModuleBase {
         count,
         items,
         page: pageNum,
-        perPage: perPageNum
+        perPage: perPageNum,
       };
     } catch (err) {
       this._throw(err);
@@ -130,7 +130,7 @@ class WorkersModule extends ModuleBase {
         name: worker.name,
         description: worker.description,
         bot: worker.bot.toString(),
-        created: worker.created.getTime()
+        created: worker.created.getTime(),
       };
     } catch (err) {
       this._throw(err);
@@ -165,7 +165,7 @@ class WorkersModule extends ModuleBase {
       const worker = new Worker({
         name,
         description: description || null,
-        bot
+        bot,
       });
 
       await worker.save();
@@ -175,7 +175,7 @@ class WorkersModule extends ModuleBase {
         name: worker.name,
         description: worker.description,
         bot: worker.bot.toString(),
-        created: worker.created.getTime()
+        created: worker.created.getTime(),
       };
     } catch (err) {
       if (err.code === 11000) {
@@ -242,7 +242,7 @@ class WorkersModule extends ModuleBase {
         name: worker.name,
         description: worker.description,
         bot: worker.bot.toString(),
-        created: worker.created.getTime()
+        created: worker.created.getTime(),
       };
     } catch (err) {
       if (err.code === 11000) {
@@ -254,8 +254,9 @@ class WorkersModule extends ModuleBase {
 
   /**
    * Delete a worker by ID
+   * Cascades deletion to all associated logs
    * @param {string} id - Worker ID
-   * @returns {Object} Deleted worker
+   * @returns {Object} Deleted worker with count of deleted logs
    */
   async deleteById(id) {
     try {
@@ -268,12 +269,10 @@ class WorkersModule extends ModuleBase {
         this._notFound('Worker', id);
       }
 
-      // Check if worker has associated logs
-      const logCount = await Log.countByWorker(id);
-      if (logCount > 0) {
-        throw Boom.conflict(`Cannot delete worker. It has ${logCount} associated log(s). Delete logs first.`);
-      }
+      // Cascade delete: remove all logs for this worker
+      const logsDeleted = await Log.deleteMany({ worker: id });
 
+      // Then delete the worker
       await Worker.findByIdAndDelete(id);
 
       return {
@@ -281,7 +280,8 @@ class WorkersModule extends ModuleBase {
         name: worker.name,
         description: worker.description,
         bot: worker.bot.toString(),
-        created: worker.created.getTime()
+        created: worker.created.getTime(),
+        deletedLogs: logsDeleted.deletedCount,
       };
     } catch (err) {
       this._throw(err);
@@ -310,7 +310,7 @@ class WorkersModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['message', 'bot', 'created']
+        allowedFields: ['message', 'bot', 'created'],
       });
 
       // Build query with worker ID (trusted) and sanitized filter
@@ -320,12 +320,12 @@ class WorkersModule extends ModuleBase {
         .sort({ created: -1 })
         .lean();
 
-      return logs.map(log => ({
+      return logs.map((log) => ({
         id: log._id.toString(),
         message: log.message,
         bot: log.bot.toString(),
         worker: log.worker.toString(),
-        created: log.created.toISOString()
+        created: log.created.toISOString(),
       }));
     } catch (err) {
       this._throw(err);
@@ -369,7 +369,7 @@ class WorkersModule extends ModuleBase {
 
       // Sanitize user-provided filter to prevent query injection
       const sanitizedFilter = this._sanitizeQuery(filter, {
-        allowedFields: ['message', 'created']
+        allowedFields: ['message', 'created'],
       });
 
       // Build query with bot and worker IDs (trusted) and sanitized filter
@@ -379,12 +379,12 @@ class WorkersModule extends ModuleBase {
         .sort({ created: -1 })
         .lean();
 
-      return logs.map(log => ({
+      return logs.map((log) => ({
         id: log._id.toString(),
         message: log.message,
         bot: log.bot.toString(),
         worker: log.worker.toString(),
-        created: log.created.toISOString()
+        created: log.created.toISOString(),
       }));
     } catch (err) {
       this._throw(err);

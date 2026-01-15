@@ -3,6 +3,7 @@ import { api } from 'src/boot/api';
 import type { Worker, CreateWorkerPayload, UpdateWorkerPayload, FilterQuery } from '@abernardo/api-client';
 import type { PaginationState } from 'src/types/pagination';
 import { DEFAULT_PER_PAGE } from 'src/types/pagination';
+import { getErrorMessage } from 'src/utils/errors';
 
 interface WorkersState {
   workers: Worker[];
@@ -96,8 +97,8 @@ export const useWorkersStore = defineStore('workers', {
           perPage: response.perPage,
           hasMore: (response.page + 1) * response.perPage < response.count,
         };
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch workers';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch workers');
         throw err;
       } finally {
         this.loading = false;
@@ -123,8 +124,8 @@ export const useWorkersStore = defineStore('workers', {
       try {
         this.currentWorker = await api.workers.get(id);
         return this.currentWorker;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch worker';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch worker');
         throw err;
       } finally {
         this.loading = false;
@@ -139,8 +140,8 @@ export const useWorkersStore = defineStore('workers', {
         this.workers.unshift(worker);
         this.pagination.count += 1;
         return worker;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to create worker';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to create worker');
         throw err;
       } finally {
         this.loading = false;
@@ -160,8 +161,8 @@ export const useWorkersStore = defineStore('workers', {
           this.currentWorker = worker;
         }
         return worker;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update worker';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to update worker');
         throw err;
       } finally {
         this.loading = false;
@@ -178,8 +179,8 @@ export const useWorkersStore = defineStore('workers', {
         if (this.currentWorker?.id === id) {
           this.currentWorker = null;
         }
-      } catch (err: any) {
-        this.error = err.message || 'Failed to delete worker';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to delete worker');
         throw err;
       } finally {
         this.loading = false;

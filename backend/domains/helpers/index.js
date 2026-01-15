@@ -6,8 +6,11 @@
 'use strict';
 
 const { ModuleBase, ControllerBase } = require('./modules/helpers');
+const { Sanitizer, sanitizerPlugin } = require('./modules/sanitizer');
 
 module.exports = {
   ModuleBase,
-  ControllerBase
+  ControllerBase,
+  Sanitizer,
+  sanitizerPlugin,
 };

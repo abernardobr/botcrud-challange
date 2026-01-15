@@ -3,6 +3,7 @@ import { api } from 'src/boot/api';
 import type { Bot, BotStatus, CreateBotPayload, UpdateBotPayload, FilterQuery } from '@abernardo/api-client';
 import type { PaginationState } from 'src/types/pagination';
 import { DEFAULT_PER_PAGE } from 'src/types/pagination';
+import { getErrorMessage } from 'src/utils/errors';
 
 interface BotsState {
   bots: Bot[];
@@ -96,8 +97,8 @@ export const useBotsStore = defineStore('bots', {
           perPage: response.perPage,
           hasMore: (response.page + 1) * response.perPage < response.count,
         };
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch bots';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch bots');
         throw err;
       } finally {
         this.loading = false;
@@ -119,8 +120,8 @@ export const useBotsStore = defineStore('bots', {
       try {
         this.currentBot = await api.bots.get(id);
         return this.currentBot;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch bot';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch bot');
         throw err;
       } finally {
         this.loading = false;
@@ -135,8 +136,8 @@ export const useBotsStore = defineStore('bots', {
         this.bots.unshift(bot);
         this.pagination.count += 1;
         return bot;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to create bot';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to create bot');
         throw err;
       } finally {
         this.loading = false;
@@ -156,8 +157,8 @@ export const useBotsStore = defineStore('bots', {
           this.currentBot = bot;
         }
         return bot;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update bot';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to update bot');
         throw err;
       } finally {
         this.loading = false;
@@ -174,8 +175,8 @@ export const useBotsStore = defineStore('bots', {
         if (this.currentBot?.id === id) {
           this.currentBot = null;
         }
-      } catch (err: any) {
-        this.error = err.message || 'Failed to delete bot';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to delete bot');
         throw err;
       } finally {
         this.loading = false;

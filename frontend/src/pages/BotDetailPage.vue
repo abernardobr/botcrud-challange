@@ -24,6 +24,7 @@
       <div class="header-right">
         <q-badge
           :class="['status-badge', `status-badge--${bot?.status?.toLowerCase()}`]"
+          data-testid="bot-detail-status"
         >
           <span class="status-dot"></span>
           {{ statusLabel }}
@@ -34,6 +35,7 @@
           icon="settings"
           @click="showSettings = true"
           class="settings-btn"
+          data-testid="settings-btn"
         />
       </div>
     </header>
@@ -56,6 +58,7 @@
               icon="edit"
               @click="editBot"
               class="info-action-btn"
+              data-testid="bot-edit-btn"
             />
             <q-btn
               flat
@@ -65,10 +68,11 @@
               color="negative"
               @click="confirmDeleteBot"
               class="info-action-btn info-action-btn--delete"
+              data-testid="bot-delete-btn"
             />
           </div>
         </div>
-        <p v-if="bot?.description" class="bot-description">{{ bot.description }}</p>
+        <p v-if="bot?.description" class="bot-description" data-testid="bot-description">{{ bot.description }}</p>
         <p class="bot-created">{{ t('common.created') }}: {{ formatDateTime(bot?.created) }}</p>
       </q-card-section>
     </q-card>
@@ -99,12 +103,13 @@
           />
         </button>
       </div>
-      <div v-if="activeTab === 'workers'" class="tab-actions">
+      <div v-if="activeTab === 'workers'" class="tab-actions" data-testid="workers-section">
         <q-btn
           color="primary"
           icon="add"
           :label="t('botDetail.newWorker')"
           class="add-btn"
+          data-testid="add-worker-btn"
           @click="openAddWorker"
         />
         <q-btn
@@ -410,13 +415,8 @@ import { useDateTime } from 'src/composables/useDateTime';
 import { saveFilterHistory } from 'src/utils/filter-history';
 import type { FilterQuery } from '@abernardo/api-client';
 
-const { t, locale } = useI18n();
-
-// Format number according to current locale
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
-const { formatDateTime, formatRelativeTime } = useDateTime();
+const { t } = useI18n();
+const { formatDateTime, formatRelativeTime, formatNumber } = useDateTime();
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
@@ -503,11 +503,12 @@ const workersCount = computed(() => workersStore.pagination.count);
 const logsCount = computed(() => logsStore.pagination.count);
 
 // Workers already include logsCount from the backend
+type WorkerWithCounts = typeof botWorkers.value[0] & { logsCount?: number };
 const workersWithLogs = computed(() => {
   return botWorkers.value.map(worker => ({
     ...worker,
     // Use logsCount from backend (already included in worker response)
-    logsCount: (worker as any).logsCount ?? 0,
+    logsCount: (worker as WorkerWithCounts).logsCount ?? 0,
   }));
 });
 
@@ -545,10 +546,10 @@ function confirmDeleteBot() {
         message: t('bots.botDeleted'),
       });
       router.push({ name: 'home' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       $q.notify({
         type: 'negative',
-        message: err.message || t('errors.generic'),
+        message: err instanceof Error ? err.message : t('errors.generic'),
       });
     }
   });
@@ -589,10 +590,10 @@ function confirmDeleteLog(log: Log) {
         type: 'positive',
         message: t('logs.logDeleted'),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       $q.notify({
         type: 'negative',
-        message: err.message || t('errors.generic'),
+        message: err instanceof Error ? err.message : t('errors.generic'),
       });
     }
   });
@@ -629,10 +630,10 @@ async function handleWorkerFilterApply(filter: FilterQuery, nlQuery?: string) {
         ? t('queryBuilder.filterApplied', { count: workersStore.workerCount })
         : t('queryBuilder.filterCleared'),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   } finally {
     workersLoading.value = false;
@@ -668,10 +669,10 @@ async function handleLogFilterApply(filter: FilterQuery, nlQuery?: string) {
         ? t('queryBuilder.filterApplied', { count: logsStore.pagination.count })
         : t('queryBuilder.filterCleared'),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   } finally {
     logsLoading.value = false;
@@ -691,10 +692,10 @@ async function loadMoreWorkers() {
   try {
     // Pass botId to maintain the bot filter during pagination
     await workersStore.loadMoreWorkers(botId.value);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -703,10 +704,10 @@ async function loadMoreLogs() {
   try {
     // Pass botId to maintain the filter during pagination
     await logsStore.loadMoreLogs(botId.value);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -723,12 +724,12 @@ async function loadData() {
     logsLoading.value = true;
     await logsStore.fetchLogs(botId.value);
     logsLoading.value = false;
-  } catch (err: any) {
+  } catch (err: unknown) {
     workersLoading.value = false;
     logsLoading.value = false;
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }

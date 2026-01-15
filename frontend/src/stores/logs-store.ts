@@ -3,6 +3,7 @@ import { api } from 'src/boot/api';
 import type { Log, CreateLogPayload, UpdateLogPayload, ListLogsQuery, FilterQuery } from '@abernardo/api-client';
 import type { PaginationState } from 'src/types/pagination';
 import { DEFAULT_PER_PAGE } from 'src/types/pagination';
+import { getErrorMessage } from 'src/utils/errors';
 
 interface LogsState {
   logs: Log[];
@@ -118,8 +119,8 @@ export const useLogsStore = defineStore('logs', {
           perPage: response.perPage,
           hasMore: (response.page + 1) * response.perPage < response.count,
         };
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch logs';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch logs');
         throw err;
       } finally {
         this.loading = false;
@@ -153,8 +154,8 @@ export const useLogsStore = defineStore('logs', {
       try {
         this.currentLog = await api.logs.get(id);
         return this.currentLog;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to fetch log';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to fetch log');
         throw err;
       } finally {
         this.loading = false;
@@ -169,8 +170,8 @@ export const useLogsStore = defineStore('logs', {
         this.logs.unshift(log);
         this.pagination.count += 1;
         return log;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to create log';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to create log');
         throw err;
       } finally {
         this.loading = false;
@@ -190,8 +191,8 @@ export const useLogsStore = defineStore('logs', {
           this.currentLog = log;
         }
         return log;
-      } catch (err: any) {
-        this.error = err.message || 'Failed to update log';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to update log');
         throw err;
       } finally {
         this.loading = false;
@@ -208,8 +209,8 @@ export const useLogsStore = defineStore('logs', {
         if (this.currentLog?.id === id) {
           this.currentLog = null;
         }
-      } catch (err: any) {
-        this.error = err.message || 'Failed to delete log';
+      } catch (err: unknown) {
+        this.error = getErrorMessage(err, 'Failed to delete log');
         throw err;
       } finally {
         this.loading = false;

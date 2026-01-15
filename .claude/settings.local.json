@@ -29,7 +29,12 @@
       "Bash(npx eslint:*)",
       "Bash(curl:*)",
       "Bash(convert:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(timeout 10 node:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npx playwright test:*)"
     ]
   }
 }

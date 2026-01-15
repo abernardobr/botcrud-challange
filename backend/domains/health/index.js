@@ -7,5 +7,5 @@
 const healthController = require('./controllers/health');
 
 module.exports = {
-  routes: healthController.routes
+  routes: healthController.routes,
 };

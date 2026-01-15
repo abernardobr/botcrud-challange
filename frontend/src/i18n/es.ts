@@ -51,6 +51,7 @@ export default {
     optional: 'opcional',
     required: 'Este campo es obligatorio',
     loadMore: 'Cargar Más',
+    backToHome: 'Volver al Inicio',
   },
   settings: {
     title: 'Configuración',
@@ -82,7 +83,6 @@ export default {
     botCreated: 'Bot creado exitosamente',
     botUpdated: 'Bot actualizado exitosamente',
     botDeleted: 'Bot eliminado exitosamente',
-    hasWorkers: 'No se puede eliminar un bot con workers',
   },
   workers: {
     title: 'Workers',
@@ -99,7 +99,6 @@ export default {
     workerCreated: 'Worker creado exitosamente',
     workerUpdated: 'Worker actualizado exitosamente',
     workerDeleted: 'Worker eliminado exitosamente',
-    hasLogs: 'No se puede eliminar un worker con logs',
     parentBot: 'Bot Padre',
     selectBot: 'Seleccionar Bot',
   },
@@ -133,6 +132,8 @@ export default {
   errors: {
     generic: 'Ocurrió un error',
     notFound: 'Recurso no encontrado',
+    pageNotFound: 'Página No Encontrada',
+    pageNotFoundMessage: 'La página que buscas no existe o ha sido movida.',
     validation: 'Error de validación',
     conflict: 'Error de conflicto',
     network: 'Error de red - verifica tu conexión',

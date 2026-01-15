@@ -23,8 +23,8 @@ try {
     user: 'botcrud_user',
     pwd: 'botcrud_pass',
     roles: [
-      { role: 'readWrite', db: 'botcrud' }
-    ]
+      { role: 'readWrite', db: 'botcrud' },
+    ],
   });
 } catch (e) {
   print('User already exists, continuing...');
@@ -41,23 +41,23 @@ db.createCollection('bots', {
       properties: {
         name: {
           bsonType: 'string',
-          description: 'Bot name - required'
+          description: 'Bot name - required',
         },
         description: {
           bsonType: ['string', 'null'],
-          description: 'Bot description - optional'
+          description: 'Bot description - optional',
         },
         status: {
           enum: ['DISABLED', 'ENABLED', 'PAUSED'],
-          description: 'Bot status - required'
+          description: 'Bot status - required',
         },
         created: {
           bsonType: 'date',
-          description: 'Creation timestamp - required'
-        }
-      }
-    }
-  }
+          description: 'Creation timestamp - required',
+        },
+      },
+    },
+  },
 });
 
 db.createCollection('workers', {
@@ -68,23 +68,23 @@ db.createCollection('workers', {
       properties: {
         name: {
           bsonType: 'string',
-          description: 'Worker name - required'
+          description: 'Worker name - required',
         },
         description: {
           bsonType: ['string', 'null'],
-          description: 'Worker description - optional'
+          description: 'Worker description - optional',
         },
         bot: {
           bsonType: 'objectId',
-          description: 'Reference to bot - required'
+          description: 'Reference to bot - required',
         },
         created: {
           bsonType: 'date',
-          description: 'Creation timestamp - required'
-        }
-      }
-    }
-  }
+          description: 'Creation timestamp - required',
+        },
+      },
+    },
+  },
 });
 
 db.createCollection('logs', {
@@ -95,23 +95,23 @@ db.createCollection('logs', {
       properties: {
         message: {
           bsonType: 'string',
-          description: 'Log message - required'
+          description: 'Log message - required',
         },
         bot: {
           bsonType: 'objectId',
-          description: 'Reference to bot - required'
+          description: 'Reference to bot - required',
         },
         worker: {
           bsonType: 'objectId',
-          description: 'Reference to worker - required'
+          description: 'Reference to worker - required',
         },
         created: {
           bsonType: 'date',
-          description: 'Creation timestamp - required'
-        }
-      }
-    }
-  }
+          description: 'Creation timestamp - required',
+        },
+      },
+    },
+  },
 });
 
 // Create indexes
@@ -191,7 +191,7 @@ const LOG_MESSAGES = {
     'Email sent successfully to {n} recipients',
     'Webhook delivered successfully',
     'File processed successfully',
-    'Database query executed in {n}ms'
+    'Database query executed in {n}ms',
   ],
   warning: [
     'Memory usage at {n}% - approaching threshold',
@@ -203,7 +203,7 @@ const LOG_MESSAGES = {
     'Disk space warning: {n}% used',
     'Response time degraded: {n}ms average',
     'Queue backlog growing: {n} pending items',
-    'Certificate expiring soon'
+    'Certificate expiring soon',
   ],
   error: [
     'Connection timeout to external service',
@@ -215,7 +215,7 @@ const LOG_MESSAGES = {
     'Maximum retry attempts exceeded',
     'Out of memory error during operation',
     'File not found',
-    'Permission denied accessing resource'
+    'Permission denied accessing resource',
   ],
   success: [
     'Task completed successfully - Duration: {n}ms',
@@ -227,8 +227,8 @@ const LOG_MESSAGES = {
     'Deployment finished successfully',
     'Data export completed: {n} rows',
     'Cleanup job finished - {n} items removed',
-    'Notification sent to {n} subscribers'
-  ]
+    'Notification sent to {n} subscribers',
+  ],
 };
 
 function generateLogMessage() {
@@ -254,12 +254,12 @@ const BOT_PREFIXES = [
   'Sync', 'Integration', 'Analytics', 'Backup', 'Security', 'Audit', 'Notify',
   'Schedule', 'Workflow', 'Pipeline', 'ETL', 'API', 'Web', 'Email', 'Chat',
   'Social', 'CRM', 'ERP', 'HR', 'Finance', 'Sales', 'Marketing', 'Support',
-  'Inventory', 'Order', 'Shipping', 'Payment', 'Invoice', 'Customer', 'Product'
+  'Inventory', 'Order', 'Shipping', 'Payment', 'Invoice', 'Customer', 'Product',
 ];
 
 const BOT_SUFFIXES = [
   'Bot', 'Agent', 'Worker', 'Processor', 'Handler', 'Manager', 'Service',
-  'System', 'Engine', 'Controller', 'Automator', 'Assistant', 'Helper'
+  'System', 'Engine', 'Controller', 'Automator', 'Assistant', 'Helper',
 ];
 
 const BOT_DESCRIPTIONS = [
@@ -282,13 +282,13 @@ const BOT_DESCRIPTIONS = [
   'Invoice generation service',
   'Data validation and cleanup',
   'Log aggregation and analysis',
-  'Performance monitoring agent'
+  'Performance monitoring agent',
 ];
 
 const WORKER_TYPES = [
   'Executor', 'Collector', 'Processor', 'Validator', 'Transformer',
   'Aggregator', 'Dispatcher', 'Scheduler', 'Monitor', 'Reporter',
-  'Analyzer', 'Cleaner', 'Archiver', 'Notifier', 'Syncer'
+  'Analyzer', 'Cleaner', 'Archiver', 'Notifier', 'Syncer',
 ];
 
 const WORKER_DESCRIPTIONS = [
@@ -306,7 +306,7 @@ const WORKER_DESCRIPTIONS = [
   'Data cleanup processor',
   'Archive and retention handler',
   'Alert notification dispatcher',
-  'Cross-system synchronizer'
+  'Cross-system synchronizer',
 ];
 
 // Configuration
@@ -330,10 +330,10 @@ for (let i = 0; i < NUM_BOTS; i++) {
   do {
     const prefix = randomElement(BOT_PREFIXES);
     const suffix = randomElement(BOT_SUFFIXES);
-    const num = i < 100 ? '' : ' ' + Math.floor(i / 100);
-    name = prefix + ' ' + suffix + num;
+    const num = i < 100 ? '' : ` ${Math.floor(i / 100)}`;
+    name = `${prefix} ${suffix}${num}`;
     if (usedBotNames[name]) {
-      name = prefix + ' ' + suffix + ' ' + (i + 1);
+      name = `${prefix} ${suffix} ${i + 1}`;
     }
   } while (usedBotNames[name]);
   usedBotNames[name] = true;
@@ -345,19 +345,19 @@ for (let i = 0; i < NUM_BOTS; i++) {
   const botId = new ObjectId();
   bots.push({
     _id: botId,
-    name: name,
-    description: description,
+    name,
+    description,
     status: randomElement(statuses),
-    created: created
+    created,
   });
 }
 
 // Sort by created date
 bots.sort((a, b) => a.created - b.created);
 
-print('Inserting ' + bots.length + ' bots...');
+print(`Inserting ${bots.length} bots...`);
 db.bots.insertMany(bots);
-print('Inserted ' + bots.length + ' bots');
+print(`Inserted ${bots.length} bots`);
 
 // ============================================================================
 // GENERATE AND INSERT WORKERS
@@ -379,7 +379,7 @@ for (let i = 0; i < NUM_WORKERS; i++) {
   workerCountByBot[bot._id.toString()] = workerNum;
 
   const type = randomElement(WORKER_TYPES);
-  const name = type + ' ' + workerNum;
+  const name = `${type} ${workerNum}`;
   const description = seededRandom() > 0.15 ? randomElement(WORKER_DESCRIPTIONS) : null;
 
   // Worker created after the bot
@@ -387,19 +387,19 @@ for (let i = 0; i < NUM_WORKERS; i++) {
 
   workers.push({
     _id: new ObjectId(),
-    name: name,
-    description: description,
+    name,
+    description,
     bot: bot._id,
-    created: created
+    created,
   });
 }
 
 // Sort by created date
 workers.sort((a, b) => a.created - b.created);
 
-print('Inserting ' + workers.length + ' workers...');
+print(`Inserting ${workers.length} workers...`);
 db.workers.insertMany(workers);
-print('Inserted ' + workers.length + ' workers');
+print(`Inserted ${workers.length} workers`);
 
 // ============================================================================
 // GENERATE AND INSERT LOGS (in batches)
@@ -415,8 +415,8 @@ for (let w = 0; w < workers.length; w++) {
 
   // Random number of logs per worker (weighted towards lower numbers)
   const numLogs = Math.floor(
-    MIN_LOGS_PER_WORKER +
-    Math.pow(seededRandom(), 2) * (MAX_LOGS_PER_WORKER - MIN_LOGS_PER_WORKER)
+    MIN_LOGS_PER_WORKER
+    + Math.pow(seededRandom(), 2) * (MAX_LOGS_PER_WORKER - MIN_LOGS_PER_WORKER),
   );
 
   for (let l = 0; l < numLogs; l++) {
@@ -426,14 +426,14 @@ for (let w = 0; w < workers.length; w++) {
       message: generateLogMessage(),
       bot: worker.bot,
       worker: worker._id,
-      created: logDate
+      created: logDate,
     });
 
     if (logBatch.length >= BATCH_SIZE) {
       db.logs.insertMany(logBatch);
       totalLogs += logBatch.length;
       if (totalLogs % 100000 === 0) {
-        print('  Inserted ' + totalLogs + ' logs...');
+        print(`  Inserted ${totalLogs} logs...`);
       }
       logBatch = [];
     }
@@ -446,7 +446,7 @@ if (logBatch.length > 0) {
   totalLogs += logBatch.length;
 }
 
-print('Inserted ' + totalLogs + ' logs');
+print(`Inserted ${totalLogs} logs`);
 
 // ============================================================================
 // COMPLETION
@@ -459,7 +459,7 @@ print('========================================');
 print('Collections created: bots, workers, logs');
 print('Indexes created for all collections');
 print('Seed data:');
-print('  - Bots: ' + bots.length);
-print('  - Workers: ' + workers.length);
-print('  - Logs: ' + totalLogs);
+print(`  - Bots: ${bots.length}`);
+print(`  - Workers: ${workers.length}`);
+print(`  - Logs: ${totalLogs}`);
 print('========================================');

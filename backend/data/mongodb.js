@@ -20,7 +20,6 @@ class MongoDB {
    */
   async connect() {
     if (this.isConnected) {
-      console.log('[MongoDB] Already connected');
       return this.connection;
     }
 
@@ -35,7 +34,6 @@ class MongoDB {
 
       // Connection event handlers
       mongoose.connection.on('connected', () => {
-        console.log('[MongoDB] Connected successfully');
         this.isConnected = true;
       });
 
@@ -45,7 +43,6 @@ class MongoDB {
       });
 
       mongoose.connection.on('disconnected', () => {
-        console.log('[MongoDB] Disconnected');
         this.isConnected = false;
       });
 
@@ -70,7 +67,6 @@ class MongoDB {
     try {
       await mongoose.disconnect();
       this.isConnected = false;
-      console.log('[MongoDB] Disconnected successfully');
     } catch (err) {
       console.error('[MongoDB] Error during disconnect:', err);
       throw err;
@@ -101,7 +97,6 @@ class MongoDB {
       throw new Error('dropDatabase is only allowed in test environment');
     }
     await mongoose.connection.dropDatabase();
-    console.log('[MongoDB] Database dropped');
   }
 }
 

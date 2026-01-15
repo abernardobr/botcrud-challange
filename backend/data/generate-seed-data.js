@@ -20,7 +20,7 @@ const CONFIG = {
   maxLogsPerWorker: 4000,
   // 6 months ago from now
   startDate: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
-  endDate: new Date()
+  endDate: new Date(),
 };
 
 // Bot name prefixes and suffixes for realistic names
@@ -29,12 +29,12 @@ const BOT_PREFIXES = [
   'Sync', 'Integration', 'Analytics', 'Backup', 'Security', 'Audit', 'Notify',
   'Schedule', 'Workflow', 'Pipeline', 'ETL', 'API', 'Web', 'Email', 'Chat',
   'Social', 'CRM', 'ERP', 'HR', 'Finance', 'Sales', 'Marketing', 'Support',
-  'Inventory', 'Order', 'Shipping', 'Payment', 'Invoice', 'Customer', 'Product'
+  'Inventory', 'Order', 'Shipping', 'Payment', 'Invoice', 'Customer', 'Product',
 ];
 
 const BOT_SUFFIXES = [
   'Bot', 'Agent', 'Worker', 'Processor', 'Handler', 'Manager', 'Service',
-  'System', 'Engine', 'Controller', 'Automator', 'Assistant', 'Helper'
+  'System', 'Engine', 'Controller', 'Automator', 'Assistant', 'Helper',
 ];
 
 const BOT_DESCRIPTIONS = [
@@ -57,13 +57,13 @@ const BOT_DESCRIPTIONS = [
   'Invoice generation service',
   'Data validation and cleanup',
   'Log aggregation and analysis',
-  'Performance monitoring agent'
+  'Performance monitoring agent',
 ];
 
 const WORKER_TYPES = [
   'Executor', 'Collector', 'Processor', 'Validator', 'Transformer',
   'Aggregator', 'Dispatcher', 'Scheduler', 'Monitor', 'Reporter',
-  'Analyzer', 'Cleaner', 'Archiver', 'Notifier', 'Syncer'
+  'Analyzer', 'Cleaner', 'Archiver', 'Notifier', 'Syncer',
 ];
 
 const WORKER_DESCRIPTIONS = [
@@ -81,7 +81,7 @@ const WORKER_DESCRIPTIONS = [
   'Data cleanup processor',
   'Archive and retention handler',
   'Alert notification dispatcher',
-  'Cross-system synchronizer'
+  'Cross-system synchronizer',
 ];
 
 const LOG_MESSAGES = {
@@ -105,7 +105,7 @@ const LOG_MESSAGES = {
     'Email sent successfully to {n} recipients',
     'Webhook delivered to {endpoint}',
     'File processed: {filename}',
-    'Database query executed in {n}ms'
+    'Database query executed in {n}ms',
   ],
   warning: [
     'Memory usage at {n}% - approaching threshold',
@@ -117,7 +117,7 @@ const LOG_MESSAGES = {
     'Disk space warning: {n}% used',
     'Response time degraded: {n}ms average',
     'Queue backlog growing: {n} pending items',
-    'Certificate expiring in {n} days'
+    'Certificate expiring in {n} days',
   ],
   error: [
     'Connection timeout to {service}',
@@ -129,7 +129,7 @@ const LOG_MESSAGES = {
     'Maximum retry attempts exceeded for {operation}',
     'Out of memory error during {operation}',
     'File not found: {filename}',
-    'Permission denied accessing {resource}'
+    'Permission denied accessing {resource}',
   ],
   success: [
     'Task completed successfully - Duration: {n}ms',
@@ -141,8 +141,8 @@ const LOG_MESSAGES = {
     'Deployment finished - version {version}',
     'Data export completed: {n} rows',
     'Cleanup job finished - {n} items removed',
-    'Notification sent to {n} subscribers'
-  ]
+    'Notification sent to {n} subscribers',
+  ],
 };
 
 // Helper functions
@@ -208,10 +208,10 @@ function generateBots() {
 
     bots.push({
       id: generateUUID(),
-      name: name,
+      name,
       description: Math.random() > 0.1 ? randomElement(BOT_DESCRIPTIONS) : null,
       status: randomElement(statuses),
-      created: created.getTime()
+      created: created.getTime(),
     });
   }
 
@@ -228,7 +228,7 @@ function generateWorkers(bots) {
   const workersByBot = new Map();
 
   // Distribute workers across bots (some bots get more workers)
-  const botIds = bots.map(b => b.id);
+  const botIds = bots.map((b) => b.id);
 
   for (let i = 0; i < CONFIG.numWorkers; i++) {
     // Weighted distribution - some bots get more workers
@@ -251,10 +251,10 @@ function generateWorkers(bots) {
 
     workers.push({
       id: generateUUID(),
-      name: name,
+      name,
       description: Math.random() > 0.15 ? randomElement(WORKER_DESCRIPTIONS) : null,
       bot: botId,
-      created: created.getTime()
+      created: created.getTime(),
     });
   }
 
@@ -273,20 +273,20 @@ function generateLogsMetadata(workers, bots) {
   let totalLogs = 0;
 
   // Create a map of bot IDs for quick lookup
-  const botMap = new Map(bots.map(b => [b.id, b]));
+  const botMap = new Map(bots.map((b) => [b.id, b]));
 
   for (const worker of workers) {
     // Random number of logs for this worker (weighted towards lower numbers)
     const numLogs = Math.floor(
-      CONFIG.minLogsPerWorker +
-      Math.pow(Math.random(), 2) * (CONFIG.maxLogsPerWorker - CONFIG.minLogsPerWorker)
+      CONFIG.minLogsPerWorker
+      + Math.pow(Math.random(), 2) * (CONFIG.maxLogsPerWorker - CONFIG.minLogsPerWorker),
     );
 
     logsConfig.push({
       workerId: worker.id,
       botId: worker.bot,
       workerCreated: worker.created,
-      numLogs: numLogs
+      numLogs,
     });
 
     totalLogs += numLogs;
@@ -302,8 +302,8 @@ function generateSampleLogs(workers, bots, maxLogs = 10000) {
   console.log(`Generating sample of ${maxLogs} logs...`);
   const logs = [];
 
-  const workerBotMap = new Map(workers.map(w => [w.id, w.bot]));
-  const workerCreatedMap = new Map(workers.map(w => [w.id, w.created]));
+  const workerBotMap = new Map(workers.map((w) => [w.id, w.bot]));
+  const workerCreatedMap = new Map(workers.map((w) => [w.id, w.created]));
 
   // Randomly select workers and generate logs
   for (let i = 0; i < maxLogs; i++) {
@@ -319,7 +319,7 @@ function generateSampleLogs(workers, bots, maxLogs = 10000) {
       created: logDate.toISOString(),
       message: generateLogMessage(logType),
       bot: worker.bot,
-      worker: worker.id
+      worker: worker.id,
     });
   }
 
@@ -352,30 +352,30 @@ async function main() {
 
   fs.writeFileSync(
     path.join(jsonDir, 'bots.json'),
-    JSON.stringify(bots, null, 2)
+    JSON.stringify(bots, null, 2),
   );
   console.log(`  - bots.json: ${bots.length} bots`);
 
   fs.writeFileSync(
     path.join(jsonDir, 'workers.json'),
-    JSON.stringify(workers, null, 2)
+    JSON.stringify(workers, null, 2),
   );
   console.log(`  - workers.json: ${workers.length} workers`);
 
   fs.writeFileSync(
     path.join(jsonDir, 'logs.json'),
-    JSON.stringify(sampleLogs, null, 2)
+    JSON.stringify(sampleLogs, null, 2),
   );
   console.log(`  - logs.json: ${sampleLogs.length} sample logs`);
 
   // Write logs config for mongo-init.js to use
   fs.writeFileSync(
     path.join(jsonDir, 'logs-config.json'),
-    JSON.stringify(logsConfig, null, 2)
+    JSON.stringify(logsConfig, null, 2),
   );
   console.log(`  - logs-config.json: configuration for ${totalLogs.toLocaleString()} logs`);
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('Generation complete!');
   console.log(`  Bots: ${bots.length}`);
   console.log(`  Workers: ${workers.length}`);

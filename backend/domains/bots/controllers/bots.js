@@ -48,26 +48,26 @@ const controller = new BotsController();
 // Validation schemas
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 const idParam = Joi.object({
-  id: Joi.string().pattern(objectIdPattern).required().description('Bot ID')
+  id: Joi.string().pattern(objectIdPattern).required().description('Bot ID'),
 });
 
 const botPayload = Joi.object({
   name: Joi.string().min(1).max(100).required().description('Bot name'),
   description: Joi.string().max(500).allow(null, '').description('Bot description'),
-  status: Joi.string().valid(...VALID_STATUSES).description('Bot status')
+  status: Joi.string().valid(...VALID_STATUSES).description('Bot status'),
 });
 
 const botUpdatePayload = Joi.object({
   name: Joi.string().min(1).max(100).description('Bot name'),
   description: Joi.string().max(500).allow(null, '').description('Bot description'),
-  status: Joi.string().valid(...VALID_STATUSES).description('Bot status')
+  status: Joi.string().valid(...VALID_STATUSES).description('Bot status'),
 }).min(1);
 
 const listQuery = Joi.object({
   status: Joi.string().valid(...VALID_STATUSES).description('Filter by status'),
   page: Joi.number().integer().min(0).default(0).description('Page number (0-based)'),
   perPage: Joi.number().integer().min(1).max(100).default(20).description('Items per page'),
-  filter: Joi.string().description('MongoDB query filter as JSON string')
+  filter: Joi.string().description('MongoDB query filter as JSON string'),
 });
 
 // Route definitions
@@ -83,9 +83,9 @@ module.exports = {
         notes: 'Returns a list of all bots. Can be filtered by status.',
         tags: ['api', 'bots'],
         validate: {
-          query: listQuery
-        }
-      }
+          query: listQuery,
+        },
+      },
     },
     {
       method: 'GET',
@@ -97,9 +97,9 @@ module.exports = {
         notes: 'Returns a single bot by its UUID',
         tags: ['api', 'bots'],
         validate: {
-          params: idParam
-        }
-      }
+          params: idParam,
+        },
+      },
     },
     {
       method: 'POST',
@@ -111,9 +111,9 @@ module.exports = {
         notes: 'Creates a new bot with the provided data',
         tags: ['api', 'bots'],
         validate: {
-          payload: botPayload
-        }
-      }
+          payload: botPayload,
+        },
+      },
     },
     {
       method: 'PUT',
@@ -126,9 +126,9 @@ module.exports = {
         tags: ['api', 'bots'],
         validate: {
           params: idParam,
-          payload: botUpdatePayload
-        }
-      }
+          payload: botUpdatePayload,
+        },
+      },
     },
     {
       method: 'DELETE',
@@ -140,9 +140,9 @@ module.exports = {
         notes: 'Deletes a bot by its UUID. Cannot delete if bot has workers.',
         tags: ['api', 'bots'],
         validate: {
-          params: idParam
-        }
-      }
+          params: idParam,
+        },
+      },
     },
     {
       method: 'GET',
@@ -154,9 +154,9 @@ module.exports = {
         notes: 'Returns all workers associated with a specific bot',
         tags: ['api', 'bots', 'workers'],
         validate: {
-          params: idParam
-        }
-      }
+          params: idParam,
+        },
+      },
     },
     {
       method: 'GET',
@@ -168,9 +168,9 @@ module.exports = {
         notes: 'Returns all logs associated with a specific bot',
         tags: ['api', 'bots', 'logs'],
         validate: {
-          params: idParam
-        }
-      }
-    }
-  ]
+          params: idParam,
+        },
+      },
+    },
+  ],
 };

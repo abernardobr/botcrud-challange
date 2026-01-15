@@ -1,13 +1,13 @@
 <template>
-  <q-card class="worker-card" @click="$emit('click', worker)">
+  <q-card class="worker-card" :data-testid="`worker-card-${worker.id}`" @click="$emit('click', worker)">
     <q-card-section class="worker-card__content">
       <div class="worker-card__icon">
         <q-icon name="settings_suggest" size="24px" />
       </div>
       <div class="worker-card__info">
-        <h3 class="worker-card__name">{{ worker.name }}</h3>
-        <p v-if="worker.description" class="worker-card__description">{{ worker.description }}</p>
-        <p class="worker-card__logs">{{ formatNumber(logsCount ?? 0) }} {{ t('logs.title').toLowerCase() }}</p>
+        <h3 class="worker-card__name" data-testid="worker-name">{{ worker.name }}</h3>
+        <p v-if="worker.description" class="worker-card__description" data-testid="worker-description">{{ worker.description }}</p>
+        <p class="worker-card__logs" data-testid="worker-logs-count">{{ formatNumber(logsCount ?? 0) }} {{ t('logs.title').toLowerCase() }}</p>
       </div>
       <q-icon name="chevron_right" size="20px" class="worker-card__chevron" />
     </q-card-section>
@@ -17,13 +17,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { Worker } from '@abernardo/api-client';
+import { useDateTime } from 'src/composables/useDateTime';
 
-const { t, locale } = useI18n();
-
-// Format number according to current locale
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
+const { t } = useI18n();
+const { formatNumber } = useDateTime();
 
 defineProps<{
   worker: Worker;

@@ -242,7 +242,7 @@ import { useDateTime } from 'src/composables/useDateTime';
 import { saveFilterHistory } from 'src/utils/filter-history';
 
 const { t } = useI18n();
-const { formatRelativeTime } = useDateTime();
+const { formatRelativeTime, formatNumber } = useDateTime();
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
@@ -287,10 +287,6 @@ const hasMoreLogs = computed(() => {
   return logsStore.logs.length < count && logsStore.logs.length >= perPage;
 });
 
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat().format(value);
-}
-
 function goBack() {
   router.push({ name: 'bot-detail', params: { id: botId.value } });
 }
@@ -313,10 +309,10 @@ function confirmDeleteWorker() {
         message: t('workers.workerDeleted'),
       });
       goBack();
-    } catch (err: any) {
+    } catch (err: unknown) {
       $q.notify({
         type: 'negative',
-        message: err.message || t('errors.generic'),
+        message: err instanceof Error ? err.message : t('errors.generic'),
       });
     }
   });
@@ -345,10 +341,10 @@ function confirmDeleteLog(log: Log) {
         type: 'positive',
         message: t('logs.logDeleted'),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       $q.notify({
         type: 'negative',
-        message: err.message || t('errors.generic'),
+        message: err instanceof Error ? err.message : t('errors.generic'),
       });
     }
   });
@@ -371,11 +367,11 @@ async function loadData() {
     // Filter logs by both bot AND worker on the server
     await logsStore.fetchLogs(botId.value, workerId.value);
     logsLoading.value = false;
-  } catch (err: any) {
+  } catch (err: unknown) {
     logsLoading.value = false;
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -384,10 +380,10 @@ async function loadMoreLogs() {
   try {
     loadingMore.value = true;
     await logsStore.loadMoreLogs(botId.value, workerId.value);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   } finally {
     loadingMore.value = false;
@@ -407,10 +403,10 @@ async function handleLogFilterApply(filter: FilterQuery, nlQuery?: string) {
       type: 'positive',
       message: t('queryBuilder.filterApplied', { count: logsStore.pagination.count.toLocaleString() }),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }

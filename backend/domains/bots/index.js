@@ -9,5 +9,5 @@ const botsController = require('./controllers/bots');
 
 module.exports = {
   module: botsModule,
-  routes: botsController.routes
+  routes: botsController.routes,
 };

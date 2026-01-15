@@ -1,9 +1,0 @@
-{
-  "id": "bot-1",
-  "name": "Test Bot 1",
-  "description": "First test bot for automation",
-  "status": "ENABLED",
-  "created": "2024-01-15T10:00:00Z",
-  "workersCount": 3,
-  "logsCount": 150
-}

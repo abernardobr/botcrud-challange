@@ -22,7 +22,6 @@ class DataStore {
     this._loadData('bots');
     this._loadData('workers');
     this._loadData('logs');
-    console.log(`[DataStore] Initialized with ${this._data.bots.length} bots, ${this._data.workers.length} workers, ${this._data.logs.length} logs`);
   }
 
   /**
@@ -50,9 +49,9 @@ class DataStore {
     let items = [...this._data[collection]];
 
     // Apply filters
-    Object.keys(filters).forEach(key => {
+    Object.keys(filters).forEach((key) => {
       if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
-        items = items.filter(item => item[key] === filters[key]);
+        items = items.filter((item) => item[key] === filters[key]);
       }
     });
 
@@ -66,7 +65,7 @@ class DataStore {
    * @returns {Object|null} Found item or null
    */
   findById(collection, id) {
-    return this._data[collection].find(item => item.id === id) || null;
+    return this._data[collection].find((item) => item.id === id) || null;
   }
 
   /**
@@ -79,7 +78,7 @@ class DataStore {
     const item = {
       id: uuidv4(),
       ...data,
-      created: Date.now()
+      created: Date.now(),
     };
     this._data[collection].push(item);
     return item;
@@ -93,15 +92,15 @@ class DataStore {
    * @returns {Object|null} Updated item or null if not found
    */
   updateById(collection, id, data) {
-    const index = this._data[collection].findIndex(item => item.id === id);
-    if (index === -1) return null;
+    const index = this._data[collection].findIndex((item) => item.id === id);
+    if (index === -1) {return null;}
 
     // Don't allow updating immutable fields
     const { id: _id, created: _created, ...updateData } = data;
 
     this._data[collection][index] = {
       ...this._data[collection][index],
-      ...updateData
+      ...updateData,
     };
 
     return this._data[collection][index];
@@ -114,8 +113,8 @@ class DataStore {
    * @returns {Object|null} Deleted item or null if not found
    */
   deleteById(collection, id) {
-    const index = this._data[collection].findIndex(item => item.id === id);
-    if (index === -1) return null;
+    const index = this._data[collection].findIndex((item) => item.id === id);
+    if (index === -1) {return null;}
 
     const deleted = this._data[collection].splice(index, 1);
     return deleted[0];
@@ -129,7 +128,7 @@ class DataStore {
    * @returns {Array} Matching items
    */
   findByForeignKey(collection, foreignKey, foreignValue) {
-    return this._data[collection].filter(item => item[foreignKey] === foreignValue);
+    return this._data[collection].filter((item) => item[foreignKey] === foreignValue);
   }
 
   /**

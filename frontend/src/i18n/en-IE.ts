@@ -51,6 +51,7 @@ export default {
     optional: 'optional',
     required: 'This field is required',
     loadMore: 'Load More',
+    backToHome: 'Back to Home',
   },
   settings: {
     title: 'Settings',
@@ -82,7 +83,6 @@ export default {
     botCreated: 'Bot created successfully',
     botUpdated: 'Bot updated successfully',
     botDeleted: 'Bot deleted successfully',
-    hasWorkers: 'Cannot delete bot with workers',
   },
   workers: {
     title: 'Workers',
@@ -99,7 +99,6 @@ export default {
     workerCreated: 'Worker created successfully',
     workerUpdated: 'Worker updated successfully',
     workerDeleted: 'Worker deleted successfully',
-    hasLogs: 'Cannot delete worker with logs',
     parentBot: 'Parent Bot',
     selectBot: 'Select Bot',
   },
@@ -133,6 +132,8 @@ export default {
   errors: {
     generic: 'An error occurred',
     notFound: 'Resource not found',
+    pageNotFound: 'Page Not Found',
+    pageNotFoundMessage: 'The page you are looking for does not exist or has been moved.',
     validation: 'Validation error',
     conflict: 'Conflict error',
     network: 'Network error - please check your connection',

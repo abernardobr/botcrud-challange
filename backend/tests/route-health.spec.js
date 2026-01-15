@@ -25,9 +25,8 @@ describe('Health API Tests', function () {
   // ============================================
   // GET /health - Basic health check
   // ============================================
-  describe('GET /health - Basic health check', function () {
-
-    it('Should return health status successfully', async function () {
+  describe('GET /health - Basic health check', () => {
+    it('Should return health status successfully', async () => {
       const res = await chai.request(uri)
         .get('/health');
 
@@ -38,7 +37,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.status).to.equal('healthy');
     });
 
-    it('Should return service name in health response', async function () {
+    it('Should return service name in health response', async () => {
       const res = await chai.request(uri)
         .get('/health');
 
@@ -47,7 +46,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.service.length).to.be.greaterThan(0);
     });
 
-    it('Should return timestamp in health response', async function () {
+    it('Should return timestamp in health response', async () => {
       const res = await chai.request(uri)
         .get('/health');
 
@@ -59,7 +58,7 @@ describe('Health API Tests', function () {
       expect(timestamp.toISOString()).to.equal(res.body.data.timestamp);
     });
 
-    it('Should return health check quickly (under 1 second)', async function () {
+    it('Should return health check quickly (under 1 second)', async () => {
       const startTime = Date.now();
 
       const res = await chai.request(uri)
@@ -75,9 +74,8 @@ describe('Health API Tests', function () {
   // ============================================
   // GET /health/detailed - Detailed health check
   // ============================================
-  describe('GET /health/detailed - Detailed health check', function () {
-
-    it('Should return detailed health status successfully', async function () {
+  describe('GET /health/detailed - Detailed health check', () => {
+    it('Should return detailed health status successfully', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -88,7 +86,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.status).to.equal('healthy');
     });
 
-    it('Should return environment in detailed response', async function () {
+    it('Should return environment in detailed response', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -96,7 +94,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.environment).to.be.a('string');
     });
 
-    it('Should return uptime in detailed response', async function () {
+    it('Should return uptime in detailed response', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -105,7 +103,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.uptime).to.be.greaterThan(0);
     });
 
-    it('Should return memory usage in detailed response', async function () {
+    it('Should return memory usage in detailed response', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -117,7 +115,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.memory).to.have.property('external');
     });
 
-    it('Should return stats in detailed response', async function () {
+    it('Should return stats in detailed response', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -128,7 +126,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.stats).to.have.property('logs');
     });
 
-    it('Should return correct counts in stats', async function () {
+    it('Should return correct counts in stats', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -141,7 +139,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.stats.logs).to.be.at.least(0);
     });
 
-    it('Should return memory values as numbers', async function () {
+    it('Should return memory values as numbers', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -152,7 +150,7 @@ describe('Health API Tests', function () {
       expect(res.body.data.memory.external).to.be.a('number');
     });
 
-    it('Should have heapUsed less than or equal to heapTotal', async function () {
+    it('Should have heapUsed less than or equal to heapTotal', async () => {
       const res = await chai.request(uri)
         .get('/health/detailed');
 
@@ -164,9 +162,8 @@ describe('Health API Tests', function () {
   // ============================================
   // Consistency Tests
   // ============================================
-  describe('Consistency Tests', function () {
-
-    it('Should return consistent status across basic and detailed endpoints', async function () {
+  describe('Consistency Tests', () => {
+    it('Should return consistent status across basic and detailed endpoints', async () => {
       const basicRes = await chai.request(uri)
         .get('/health');
 
@@ -176,7 +173,7 @@ describe('Health API Tests', function () {
       expect(basicRes.body.data.status).to.equal(detailedRes.body.data.status);
     });
 
-    it('Should return consistent service name across basic and detailed endpoints', async function () {
+    it('Should return consistent service name across basic and detailed endpoints', async () => {
       const basicRes = await chai.request(uri)
         .get('/health');
 
@@ -186,12 +183,12 @@ describe('Health API Tests', function () {
       expect(basicRes.body.data.service).to.equal(detailedRes.body.data.service);
     });
 
-    it('Should return increasing uptime on consecutive calls', async function () {
+    it('Should return increasing uptime on consecutive calls', async () => {
       const res1 = await chai.request(uri)
         .get('/health/detailed');
 
       // Wait a small amount
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const res2 = await chai.request(uri)
         .get('/health/detailed');
@@ -203,16 +200,15 @@ describe('Health API Tests', function () {
   // ============================================
   // Error Handling Tests
   // ============================================
-  describe('Error Handling Tests', function () {
-
-    it('Should return 404 for non-existent health endpoint', async function () {
+  describe('Error Handling Tests', () => {
+    it('Should return 404 for non-existent health endpoint', async () => {
       const res = await chai.request(uri)
         .get('/health/nonexistent');
 
       expect(res).to.have.status(404);
     });
 
-    it('Should handle POST request to health endpoint gracefully', async function () {
+    it('Should handle POST request to health endpoint gracefully', async () => {
       const res = await chai.request(uri)
         .post('/health');
 

@@ -227,12 +227,10 @@ ChartJS.register(
   Filler
 );
 
-const { t, locale } = useI18n();
+import { useDateTime } from 'src/composables/useDateTime';
 
-// Format number according to current locale
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(locale.value).format(value);
-}
+const { t } = useI18n();
+const { formatNumber } = useDateTime();
 const router = useRouter();
 const botsStore = useBotsStore();
 const workersStore = useWorkersStore();
@@ -261,12 +259,16 @@ const avgLogsPerWorker = computed(() =>
   totalWorkers.value > 0 ? (totalLogs.value / totalWorkers.value).toFixed(1) : '0'
 );
 
+// Extended types for counts returned by the API
+type BotWithCounts = typeof botsStore.bots[0] & { workersCount?: number; logsCount?: number };
+type WorkerWithCounts = typeof workersStore.workers[0] & { logsCount?: number };
+
 // Bots with stats - use counts from backend response
 const botsWithStats = computed(() => {
   return botsStore.bots.map(bot => ({
     ...bot,
-    workersCount: (bot as any).workersCount ?? 0,
-    logsCount: (bot as any).logsCount ?? 0,
+    workersCount: (bot as BotWithCounts).workersCount ?? 0,
+    logsCount: (bot as BotWithCounts).logsCount ?? 0,
   }));
 });
 
@@ -274,7 +276,7 @@ const botsWithStats = computed(() => {
 const workersWithStats = computed(() => {
   return workersStore.workers.map(worker => ({
     ...worker,
-    logsCount: (worker as any).logsCount ?? 0,
+    logsCount: (worker as WorkerWithCounts).logsCount ?? 0,
   }));
 });
 

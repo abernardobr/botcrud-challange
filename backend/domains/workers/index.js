@@ -9,5 +9,5 @@ const workersController = require('./controllers/workers');
 
 module.exports = {
   module: workersModule,
-  routes: workersController.routes
+  routes: workersController.routes,
 };

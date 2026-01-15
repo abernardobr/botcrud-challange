@@ -45,9 +45,6 @@ class TestBootstrap {
 
     this.baseUri = `http://127.0.0.1:${process.env.PORT}`;
     this.initialized = true;
-
-    console.log(`[Test Bootstrap] Server initialized at ${this.baseUri}`);
-    console.log(`[Test Bootstrap] Using MongoDB Memory Server at ${mongoUri}`);
   }
 
   /**
@@ -103,7 +100,7 @@ class TestBootstrap {
       { _id: bot2Id, name: 'Bot Two', description: 'Second test bot', status: 'DISABLED', created: new Date('2024-01-02') },
       { _id: bot3Id, name: 'Bot Three', description: null, status: 'PAUSED', created: new Date('2024-01-03') },
       { _id: bot4Id, name: 'Bot Four', description: 'Fourth test bot', status: 'ENABLED', created: new Date('2024-01-04') },
-      { _id: bot5Id, name: 'Bot Five', description: 'Fifth test bot', status: 'DISABLED', created: new Date('2024-01-05') }
+      { _id: bot5Id, name: 'Bot Five', description: 'Fifth test bot', status: 'DISABLED', created: new Date('2024-01-05') },
     ];
 
     await Bot.insertMany(bots);
@@ -122,7 +119,7 @@ class TestBootstrap {
       { _id: worker3Id, name: 'Worker Three', description: 'Worker for Bot Two', bot: bot2Id, created: new Date('2024-01-03') },
       { _id: worker4Id, name: 'Worker Four', description: null, bot: bot2Id, created: new Date('2024-01-04') },
       { _id: worker5Id, name: 'Worker Five', description: 'Worker for Bot Three', bot: bot3Id, created: new Date('2024-01-05') },
-      { _id: worker6Id, name: 'Worker Six', description: 'Worker for Bot Four', bot: bot4Id, created: new Date('2024-01-06') }
+      { _id: worker6Id, name: 'Worker Six', description: 'Worker for Bot Four', bot: bot4Id, created: new Date('2024-01-06') },
     ];
 
     await Worker.insertMany(workers);
@@ -139,7 +136,7 @@ class TestBootstrap {
       { message: 'Bot Two Worker Three log', bot: bot2Id, worker: worker3Id, created: new Date('2024-01-03T10:00:00Z') },
       { message: 'Bot Two Worker Four log', bot: bot2Id, worker: worker4Id, created: new Date('2024-01-04T10:00:00Z') },
       { message: 'Bot Three Worker Five log', bot: bot3Id, worker: worker5Id, created: new Date('2024-01-05T10:00:00Z') },
-      { message: 'Bot Four Worker Six log', bot: bot4Id, worker: worker6Id, created: new Date('2024-01-06T10:00:00Z') }
+      { message: 'Bot Four Worker Six log', bot: bot4Id, worker: worker6Id, created: new Date('2024-01-06T10:00:00Z') },
     ];
 
     await Log.insertMany(logs);
