@@ -2,7 +2,7 @@
   <q-page class="home-page">
     <!-- Header -->
     <header class="home-header">
-      <h1 class="home-title">{{ t('home.title') }}</h1>
+      <h1 class="home-title">{{ t('home.title') }} ({{ formatNumber(totalBots) }})</h1>
       <q-btn
         flat
         round
@@ -20,12 +20,12 @@
           <span class="stat-label">{{ t('menu.bots') }}</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item">
+        <div class="stat-item clickable" @click="router.push({ name: 'workers' })">
           <span class="stat-value">{{ formatNumber(totalWorkers) }}</span>
           <span class="stat-label">{{ t('workers.title') }}</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item">
+        <div class="stat-item clickable" @click="router.push({ name: 'logs' })">
           <span class="stat-value">{{ formatNumber(totalLogs) }}</span>
           <span class="stat-label">{{ t('logs.title') }}</span>
         </div>
@@ -192,12 +192,13 @@ const totalBots = computed(() => botsStore.pagination.count);
 const totalWorkers = computed(() => workersStore.pagination.count);
 const totalLogs = computed(() => logsStore.pagination.count);
 
-// Compute bots with worker and log counts
+// Bots already include workersCount and logsCount from the backend
 const botsWithStats = computed(() => {
   return botsStore.bots.map(bot => ({
     ...bot,
-    workersCount: workersStore.workers.filter(w => w.bot === bot.id).length,
-    logsCount: logsStore.logs.filter(l => l.bot === bot.id).length,
+    // Use counts from backend (already included in bot response)
+    workersCount: (bot as any).workersCount ?? 0,
+    logsCount: (bot as any).logsCount ?? 0,
   }));
 });
 
@@ -385,6 +386,37 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+
+  &.clickable {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    .body--light & {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    .body--dark & {
+      background: rgba(129, 140, 248, 0.1);
+      border: 1px solid rgba(129, 140, 248, 0.2);
+    }
+
+    &:hover {
+      .body--light & {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.3);
+      }
+      .body--dark & {
+        background: rgba(129, 140, 248, 0.18);
+        border-color: rgba(129, 140, 248, 0.3);
+      }
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
 }
 
 .stat-value {

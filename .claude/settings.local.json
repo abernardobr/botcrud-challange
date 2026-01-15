@@ -25,7 +25,11 @@
       "Bash(node generate-seed-data.js:*)",
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx eslint:*)",
+      "Bash(curl:*)",
+      "Bash(convert:*)",
+      "Bash(tee:*)"
     ]
   }
 }

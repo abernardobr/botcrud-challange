@@ -1,15 +1,17 @@
 /**
  * Filter History Storage using IndexedDB
  * Stores filter queries with hash-based deduplication
+ * Supports multiple instances with prefix-based separation
  */
 
 const DB_NAME = 'botcrud-filter-history';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Bumped version for store update
 const STORE_NAME = 'filters';
 const MAX_HISTORY = 100;
 
 export interface FilterHistoryItem {
-  id: string; // hash of the query
+  id: string; // prefix + hash of the query
+  prefix: string; // store prefix (e.g., 'bots', 'workers')
   nlQuery: string; // natural language description
   queryBase64: string; // base64 encoded filter object
   createdDate: number; // timestamp for sorting
@@ -38,39 +40,53 @@ function openDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        store.createIndex('createdDate', 'createdDate', { unique: false });
+
+      // Delete old store if exists (for migration)
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
       }
+
+      // Create new store with prefix index
+      const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      store.createIndex('createdDate', 'createdDate', { unique: false });
+      store.createIndex('prefix', 'prefix', { unique: false });
+      store.createIndex('prefix_createdDate', ['prefix', 'createdDate'], { unique: false });
     };
   });
 }
 
 /**
  * Save a filter to history
- * If hash already exists, removes and re-adds (to update timestamp)
+ * If hash already exists for the given prefix, removes and re-adds (to update timestamp)
+ *
+ * @param nlQuery - Natural language description of the filter
+ * @param filterObject - The filter object to save
+ * @param storePrefix - Prefix to separate different filter histories (default: 'bots')
  */
 export async function saveFilterHistory(
   nlQuery: string,
-  filterObject: Record<string, unknown>
+  filterObject: Record<string, unknown>,
+  storePrefix = 'bots'
 ): Promise<void> {
   const queryBase64 = btoa(JSON.stringify(filterObject));
   const hash = await generateHash(queryBase64);
+  const id = `${storePrefix}_${hash}`;
 
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
 
-  // Remove existing entry with same hash (to re-add with new timestamp)
+  // Remove existing entry with same id (to re-add with new timestamp)
   await new Promise<void>((resolve, reject) => {
-    const deleteRequest = store.delete(hash);
+    const deleteRequest = store.delete(id);
     deleteRequest.onsuccess = () => resolve();
     deleteRequest.onerror = () => reject(deleteRequest.error);
   });
 
   // Add new entry
   const item: FilterHistoryItem = {
-    id: hash,
+    id,
+    prefix: storePrefix,
     nlQuery,
     queryBase64,
     createdDate: Date.now(),
@@ -82,8 +98,8 @@ export async function saveFilterHistory(
     addRequest.onerror = () => reject(addRequest.error);
   });
 
-  // Cleanup old entries if over limit
-  await cleanupOldEntries(store);
+  // Cleanup old entries if over limit for this prefix
+  await cleanupOldEntries(store, storePrefix);
 
   await new Promise<void>((resolve) => {
     tx.oncomplete = () => {
@@ -94,12 +110,13 @@ export async function saveFilterHistory(
 }
 
 /**
- * Remove entries beyond MAX_HISTORY limit
+ * Remove entries beyond MAX_HISTORY limit for a specific prefix
  */
-async function cleanupOldEntries(store: IDBObjectStore): Promise<void> {
+async function cleanupOldEntries(store: IDBObjectStore, storePrefix: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const index = store.index('createdDate');
-    const request = index.openCursor(null, 'prev'); // newest first
+    const index = store.index('prefix_createdDate');
+    const range = IDBKeyRange.bound([storePrefix, 0], [storePrefix, Date.now()]);
+    const request = index.openCursor(range, 'prev'); // newest first within prefix
     let count = 0;
     const toDelete: string[] = [];
 
@@ -122,17 +139,20 @@ async function cleanupOldEntries(store: IDBObjectStore): Promise<void> {
 }
 
 /**
- * Get all filter history items, sorted by newest first
+ * Get all filter history items for a specific prefix, sorted by newest first
+ *
+ * @param storePrefix - Prefix to filter history by (default: 'bots')
  */
-export async function getFilterHistory(): Promise<FilterHistoryItem[]> {
+export async function getFilterHistory(storePrefix = 'bots'): Promise<FilterHistoryItem[]> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readonly');
   const store = tx.objectStore(STORE_NAME);
-  const index = store.index('createdDate');
+  const index = store.index('prefix_createdDate');
 
   return new Promise((resolve, reject) => {
     const items: FilterHistoryItem[] = [];
-    const request = index.openCursor(null, 'prev'); // newest first
+    const range = IDBKeyRange.bound([storePrefix, 0], [storePrefix, Date.now()]);
+    const request = index.openCursor(range, 'prev'); // newest first within prefix
 
     request.onsuccess = (event) => {
       const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
@@ -173,18 +193,41 @@ export async function deleteFilterHistoryItem(id: string): Promise<void> {
 }
 
 /**
- * Clear all filter history
+ * Clear all filter history for a specific prefix
+ *
+ * @param storePrefix - Prefix to clear history for (default: 'bots')
  */
-export async function clearFilterHistory(): Promise<void> {
+export async function clearFilterHistory(storePrefix = 'bots'): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
+  const index = store.index('prefix');
 
   return new Promise((resolve, reject) => {
-    const request = store.clear();
-    request.onsuccess = () => {
-      db.close();
-      resolve();
+    const toDelete: string[] = [];
+    const request = index.openCursor(IDBKeyRange.only(storePrefix));
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        toDelete.push(cursor.value.id);
+        cursor.continue();
+      } else {
+        // Delete all items with this prefix
+        Promise.all(toDelete.map(id =>
+          new Promise<void>((res, rej) => {
+            const delReq = store.delete(id);
+            delReq.onsuccess = () => res();
+            delReq.onerror = () => rej(delReq.error);
+          })
+        )).then(() => {
+          db.close();
+          resolve();
+        }).catch(err => {
+          db.close();
+          reject(err);
+        });
+      }
     };
     request.onerror = () => {
       db.close();

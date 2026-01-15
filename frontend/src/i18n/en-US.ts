@@ -226,6 +226,7 @@ export default {
       description: 'Description',
       status: 'Status',
       created: 'Created Date',
+      message: 'Message',
     },
   },
   filterHistory: {

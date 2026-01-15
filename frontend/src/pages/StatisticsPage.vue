@@ -138,7 +138,12 @@
             {{ t('statistics.topBots') }}
           </h3>
           <div class="performers-list">
-            <div v-for="(bot, index) in topBots" :key="bot.id" class="performer-item">
+            <div
+              v-for="(bot, index) in topBots"
+              :key="bot.id"
+              class="performer-item clickable"
+              @click="goToBotDetail(bot.id)"
+            >
               <span class="performer-rank" :class="getRankClass(index)">{{ index + 1 }}</span>
               <div class="performer-info">
                 <span class="performer-name">{{ bot.name }}</span>
@@ -161,11 +166,16 @@
             {{ t('statistics.topWorkers') }}
           </h3>
           <div class="performers-list">
-            <div v-for="(worker, index) in topWorkers" :key="worker.id" class="performer-item">
+            <div
+              v-for="(worker, index) in topWorkers"
+              :key="worker.id"
+              class="performer-item clickable"
+              @click="goToWorkerDetail(worker.id, worker.bot)"
+            >
               <span class="performer-rank" :class="getRankClass(index)">{{ index + 1 }}</span>
               <div class="performer-info">
                 <span class="performer-name">{{ worker.name }}</span>
-                <span class="performer-meta">{{ getBotName(worker.bot) }}</span>
+                <span v-if="getBotName(worker.bot)" class="performer-meta">{{ getBotName(worker.bot) }}</span>
               </div>
               <div class="performer-stats">
                 <span class="performer-value">{{ formatNumber(worker.logsCount) }}</span>
@@ -230,10 +240,10 @@ const logsStore = useLogsStore();
 
 const loading = ref(true);
 
-// Computed values
-const totalBots = computed(() => botsStore.bots.length);
-const totalWorkers = computed(() => workersStore.workers.length);
-const totalLogs = computed(() => logsStore.logs.length);
+// Computed values - use pagination counts from backend for accurate totals
+const totalBots = computed(() => botsStore.pagination.count);
+const totalWorkers = computed(() => workersStore.pagination.count);
+const totalLogs = computed(() => logsStore.pagination.count);
 
 const enabledBots = computed(() =>
   botsStore.bots.filter(b => b.status === 'ENABLED').length
@@ -251,20 +261,20 @@ const avgLogsPerWorker = computed(() =>
   totalWorkers.value > 0 ? (totalLogs.value / totalWorkers.value).toFixed(1) : '0'
 );
 
-// Bots with stats
+// Bots with stats - use counts from backend response
 const botsWithStats = computed(() => {
   return botsStore.bots.map(bot => ({
     ...bot,
-    workersCount: workersStore.workers.filter(w => w.bot === bot.id).length,
-    logsCount: logsStore.logs.filter(l => l.bot === bot.id).length,
+    workersCount: (bot as any).workersCount ?? 0,
+    logsCount: (bot as any).logsCount ?? 0,
   }));
 });
 
-// Workers with stats
+// Workers with stats - use counts from backend response
 const workersWithStats = computed(() => {
   return workersStore.workers.map(worker => ({
     ...worker,
-    logsCount: logsStore.logs.filter(l => l.worker === worker.id).length,
+    logsCount: (worker as any).logsCount ?? 0,
   }));
 });
 
@@ -484,9 +494,10 @@ const lineOptions = {
 };
 
 // Helper functions
-function getBotName(botId?: string): string {
+function getBotName(botId?: string): string | null {
+  if (!botId) return null;
   const bot = botsStore.bots.find(b => b.id === botId);
-  return bot?.name || '-';
+  return bot?.name || null;
 }
 
 function getRankClass(index: number): string {
@@ -498,6 +509,16 @@ function getRankClass(index: number): string {
 
 function goBack() {
   router.push({ name: 'home' });
+}
+
+function goToBotDetail(botId: string) {
+  router.push({ name: 'bot-detail', params: { id: botId } });
+}
+
+function goToWorkerDetail(workerId: string, botId?: string) {
+  if (botId) {
+    router.push({ name: 'worker-detail', params: { id: botId, workerId } });
+  }
 }
 
 onMounted(async () => {
@@ -900,6 +921,7 @@ onMounted(async () => {
   gap: 12px;
   padding: 12px;
   border-radius: 10px;
+  transition: all 0.2s ease;
 
   .body--light & {
     background: #f8fafc;
@@ -907,6 +929,38 @@ onMounted(async () => {
 
   .body--dark & {
     background: rgba(255, 255, 255, 0.04);
+  }
+
+  &.clickable {
+    cursor: pointer;
+
+    .body--light & {
+      border: 1px solid transparent;
+
+      &:hover {
+        background: #f1f5f9;
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+
+    .body--dark & {
+      border: 1px solid transparent;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(129, 140, 248, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      &:active {
+        transform: scale(0.98);
+      }
+    }
   }
 }
 

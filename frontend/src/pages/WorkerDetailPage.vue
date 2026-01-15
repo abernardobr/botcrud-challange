@@ -37,6 +37,10 @@
           <div class="worker-details">
             <h3 class="worker-name">{{ worker?.name }}</h3>
             <p v-if="worker?.description" class="worker-description">{{ worker.description }}</p>
+            <p v-if="worker?.created" class="worker-created">
+              <q-icon name="schedule" size="14px" class="created-icon" />
+              {{ formatRelativeTime(worker.created) }}
+            </p>
           </div>
         </div>
         <div class="worker-actions">
@@ -63,14 +67,41 @@
 
     <!-- Section Header -->
     <div class="section-header">
-      <span class="section-label">{{ t('logs.title').toUpperCase() }}</span>
-      <q-btn
-        color="primary"
-        icon="add"
-        :label="t('botDetail.addLog')"
-        class="add-btn"
-        @click="openAddLog"
-      />
+      <div class="section-title">
+        <span class="section-label">{{ t('logs.title').toUpperCase() }}</span>
+        <q-badge class="logs-count-badge">{{ formatNumber(logsCount) }}</q-badge>
+      </div>
+      <div class="section-actions">
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="t('botDetail.addLog')"
+          class="add-btn"
+          @click="openAddLog"
+        />
+        <q-btn
+          :color="logsStore.hasActiveFilter ? 'secondary' : 'grey-7'"
+          :outline="!logsStore.hasActiveFilter"
+          icon="filter_list"
+          class="filter-btn"
+          @click="showLogFilter = true"
+        >
+          <q-badge
+            v-if="logsStore.hasActiveFilter"
+            color="negative"
+            floating
+            rounded
+          />
+        </q-btn>
+        <q-btn
+          flat
+          icon="history"
+          class="history-btn"
+          @click="showLogHistory = true"
+        >
+          <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
+        </q-btn>
+      </div>
     </div>
 
     <!-- Logs List -->
@@ -141,6 +172,17 @@
           </q-btn>
         </div>
       </div>
+
+      <!-- Load More Button -->
+      <div v-if="hasMoreLogs" class="load-more-container">
+        <q-btn
+          flat
+          :label="t('common.loadMore')"
+          :loading="loadingMore"
+          class="load-more-btn"
+          @click="loadMoreLogs"
+        />
+      </div>
     </div>
 
     <!-- Add/Edit Worker Drawer -->
@@ -163,6 +205,22 @@
 
     <!-- Settings Drawer -->
     <SettingsDrawer v-model="showSettings" />
+
+    <!-- Log Filter Drawer -->
+    <FilterDrawer
+      v-model="showLogFilter"
+      :fields="logFilterFields"
+      :initial-filter="logInitialFilter"
+      @apply="handleLogFilterApply"
+    />
+
+    <!-- Log Filter History Drawer -->
+    <FilterHistoryDrawer
+      v-model="showLogHistory"
+      store-prefix="worker-logs"
+      @apply="handleLogHistoryApply"
+      @edit="handleLogHistoryEdit"
+    />
   </q-page>
 </template>
 
@@ -174,11 +232,14 @@ import { useQuasar } from 'quasar';
 import { useBotsStore } from 'stores/bots-store';
 import { useWorkersStore } from 'stores/workers-store';
 import { useLogsStore } from 'stores/logs-store';
-import type { Log } from '@abernardo/api-client';
+import type { Log, FilterQuery } from '@abernardo/api-client';
 import AddWorkerDrawer from 'components/AddWorkerDrawer.vue';
 import AddLogDrawer from 'components/AddLogDrawer.vue';
 import SettingsDrawer from 'components/SettingsDrawer.vue';
+import FilterDrawer from 'components/FilterDrawer.vue';
+import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
 import { useDateTime } from 'src/composables/useDateTime';
+import { saveFilterHistory } from 'src/utils/filter-history';
 
 const { t } = useI18n();
 const { formatRelativeTime } = useDateTime();
@@ -199,15 +260,36 @@ const showEditWorker = ref(false);
 const showAddLog = ref(false);
 const editingLog = ref<Log | null>(null);
 const logsLoading = ref(false);
+const loadingMore = ref(false);
+
+// Log filter state
+const showLogFilter = ref(false);
+const showLogHistory = ref(false);
+const logInitialFilter = ref<FilterQuery | null>(null);
+
+// Log filter configuration
+const logFilterFields = computed(() => [
+  { value: 'message', label: t('queryBuilder.fields.message'), type: 'string' as const },
+  { value: 'created', label: t('queryBuilder.fields.created'), type: 'date' as const },
+]);
 
 const isMobile = computed(() => $q.screen.lt.sm);
 
 const workerLogs = computed(() => {
-  return logsStore.logs
-    .filter(l => l.worker === workerId.value)
-    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+  // Logs are already filtered by bot and worker from the server
+  return [...logsStore.logs].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
 });
 
+const logsCount = computed(() => logsStore.pagination.count);
+
+const hasMoreLogs = computed(() => {
+  const { count, perPage } = logsStore.pagination;
+  return logsStore.logs.length < count && logsStore.logs.length >= perPage;
+});
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat().format(value);
+}
 
 function goBack() {
   router.push({ name: 'bot-detail', params: { id: botId.value } });
@@ -286,7 +368,8 @@ async function loadData() {
     await workersStore.fetchWorkers();
 
     logsLoading.value = true;
-    await logsStore.fetchLogs();
+    // Filter logs by both bot AND worker on the server
+    await logsStore.fetchLogs(botId.value, workerId.value);
     logsLoading.value = false;
   } catch (err: any) {
     logsLoading.value = false;
@@ -295,6 +378,50 @@ async function loadData() {
       message: err.message || t('errors.generic'),
     });
   }
+}
+
+async function loadMoreLogs() {
+  try {
+    loadingMore.value = true;
+    await logsStore.loadMoreLogs(botId.value, workerId.value);
+  } catch (err: any) {
+    $q.notify({
+      type: 'negative',
+      message: err.message || t('errors.generic'),
+    });
+  } finally {
+    loadingMore.value = false;
+  }
+}
+
+// Log filter handlers
+async function handleLogFilterApply(filter: FilterQuery, nlQuery?: string) {
+  try {
+    // Save filter to history (nlQuery, filter, storePrefix)
+    saveFilterHistory(nlQuery || '', filter, 'worker-logs');
+
+    // Apply filter through the store (reset=true, filter as 4th param)
+    await logsStore.fetchLogs(botId.value, workerId.value, true, filter);
+
+    $q.notify({
+      type: 'positive',
+      message: t('queryBuilder.filterApplied', { count: logsStore.pagination.count.toLocaleString() }),
+    });
+  } catch (err: any) {
+    $q.notify({
+      type: 'negative',
+      message: err.message || t('errors.generic'),
+    });
+  }
+}
+
+function handleLogHistoryApply(filter: Record<string, unknown>) {
+  handleLogFilterApply(filter as FilterQuery);
+}
+
+function handleLogHistoryEdit(filter: Record<string, unknown>) {
+  logInitialFilter.value = filter as FilterQuery;
+  showLogFilter.value = true;
 }
 
 onMounted(() => {
@@ -407,6 +534,12 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .section-label {
   font-size: 12px;
   font-weight: 600;
@@ -420,6 +553,28 @@ onMounted(() => {
   }
 }
 
+.logs-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+
+  .body--light & {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+  }
+  .body--dark & {
+    background: rgba(129, 140, 248, 0.15);
+    color: #818cf8;
+  }
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .add-btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -429,6 +584,23 @@ onMounted(() => {
 
   :deep(.q-icon) {
     margin-right: 4px;
+  }
+}
+
+.filter-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.history-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+
+  .body--light & {
+    color: #6b7280;
+  }
+  .body--dark & {
+    color: #9ca3af;
   }
 }
 
@@ -514,6 +686,25 @@ onMounted(() => {
   }
   .body--dark & {
     color: #9ca3af;
+  }
+}
+
+.worker-created {
+  font-size: 12px;
+  margin: 4px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .body--light & {
+    color: #9ca3af;
+  }
+  .body--dark & {
+    color: #6b7280;
+  }
+
+  .created-icon {
+    margin-right: 2px;
   }
 }
 
@@ -662,6 +853,38 @@ onMounted(() => {
   }
   .body--dark & {
     color: #9ca3af;
+  }
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.load-more-btn {
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: none;
+
+  .body--light & {
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+  }
+  .body--dark & {
+    color: #818cf8;
+    background: rgba(129, 140, 248, 0.15);
+  }
+
+  &:hover {
+    .body--light & {
+      background: rgba(99, 102, 241, 0.15);
+    }
+    .body--dark & {
+      background: rgba(129, 140, 248, 0.2);
+    }
   }
 }
 

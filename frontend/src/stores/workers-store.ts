@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/api';
-import type { Worker, CreateWorkerPayload, UpdateWorkerPayload } from '@abernardo/api-client';
+import type { Worker, CreateWorkerPayload, UpdateWorkerPayload, FilterQuery } from '@abernardo/api-client';
 import type { PaginationState } from 'src/types/pagination';
 import { DEFAULT_PER_PAGE } from 'src/types/pagination';
 
@@ -11,6 +11,7 @@ interface WorkersState {
   loadingMore: boolean;
   error: string | null;
   botFilter: string | null;
+  activeFilter: FilterQuery | null;
   pagination: PaginationState;
 }
 
@@ -22,6 +23,7 @@ export const useWorkersStore = defineStore('workers', {
     loadingMore: false,
     error: null,
     botFilter: null,
+    activeFilter: null,
     pagination: {
       count: 0,
       page: 0,
@@ -45,25 +47,40 @@ export const useWorkersStore = defineStore('workers', {
     },
 
     workerCount: (state) => state.pagination.count,
+
+    hasActiveFilter: (state) => {
+      return state.activeFilter !== null && Object.keys(state.activeFilter).length > 0;
+    },
   },
 
   actions: {
-    async fetchWorkers(botId?: string, reset = true) {
+    async fetchWorkers(botId?: string, reset = true, filter?: FilterQuery) {
       if (reset) {
         this.loading = true;
         this.workers = [];
         this.pagination.page = 0;
+        // Store the filter for subsequent loadMore calls
+        if (filter !== undefined) {
+          this.activeFilter = filter && Object.keys(filter).length > 0 ? filter : null;
+        }
       } else {
         this.loadingMore = true;
       }
       this.error = null;
 
       try {
-        const query: Record<string, string | number> = {
+        const query: Record<string, unknown> = {
           page: this.pagination.page,
           perPage: this.pagination.perPage,
         };
         if (botId) query.bot = botId;
+
+        // Use the stored activeFilter or the provided filter
+        const filterToUse = filter !== undefined ? filter : this.activeFilter;
+        if (filterToUse && Object.keys(filterToUse).length > 0) {
+          // Base64 encode the filter for safe URL transport
+          query.filter = btoa(JSON.stringify(filterToUse));
+        }
 
         const response = await api.workers.list(query);
 
@@ -92,11 +109,12 @@ export const useWorkersStore = defineStore('workers', {
       if (!this.pagination.hasMore || this.loadingMore) return;
 
       this.pagination.page += 1;
-      await this.fetchWorkers(botId, false);
+      // Use the stored activeFilter for pagination
+      await this.fetchWorkers(botId, false, this.activeFilter || undefined);
     },
 
-    async fetchWorkersByBot(botId: string) {
-      return this.fetchWorkers(botId, true);
+    async fetchWorkersByBot(botId: string, filter?: FilterQuery) {
+      return this.fetchWorkers(botId, true, filter);
     },
 
     async fetchWorker(id: string) {
@@ -172,6 +190,14 @@ export const useWorkersStore = defineStore('workers', {
       this.botFilter = botId;
     },
 
+    setFilter(filter: FilterQuery | null) {
+      this.activeFilter = filter && Object.keys(filter).length > 0 ? filter : null;
+    },
+
+    clearFilter() {
+      this.activeFilter = null;
+    },
+
     clearError() {
       this.error = null;
     },
@@ -184,6 +210,7 @@ export const useWorkersStore = defineStore('workers', {
         hasMore: false,
       };
       this.workers = [];
+      this.activeFilter = null;
     },
   },
 });

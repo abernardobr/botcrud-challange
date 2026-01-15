@@ -17,7 +17,7 @@
             <span class="breadcrumb-current">{{ bot?.name }}</span>
           </div>
           <span v-if="!isMobile" class="page-subtitle">
-            {{ workersCount }} {{ t('workers.title').toLowerCase() }} · {{ logsCount }} {{ t('logs.title').toLowerCase() }}
+            {{ formatNumber(workersCount) }} {{ t('workers.title').toLowerCase() }} · {{ formatNumber(logsCount) }} {{ t('logs.title').toLowerCase() }}
           </span>
         </div>
       </div>
@@ -69,7 +69,7 @@
           </div>
         </div>
         <p v-if="bot?.description" class="bot-description">{{ bot.description }}</p>
-        <p class="bot-created">{{ t('common.created') }} {{ formatDateTime(bot?.createdAt) }}</p>
+        <p class="bot-created">{{ t('common.created') }}: {{ formatDateTime(bot?.created) }}</p>
       </q-card-section>
     </q-card>
 
@@ -84,7 +84,7 @@
           <span v-if="!isMobile">{{ t('workers.title') }}</span>
           <q-badge
             :class="['tab-count', { 'tab-count--active': activeTab === 'workers' }]"
-            :label="workersCount"
+            :label="formatNumber(workersCount)"
           />
         </button>
         <button
@@ -95,26 +95,72 @@
           <span v-if="!isMobile">{{ t('logs.title') }}</span>
           <q-badge
             :class="['tab-count', { 'tab-count--active': activeTab === 'logs' }]"
-            :label="logsCount"
+            :label="formatNumber(logsCount)"
           />
         </button>
       </div>
-      <q-btn
-        v-if="activeTab === 'workers'"
-        color="primary"
-        icon="add"
-        :label="t('botDetail.newWorker')"
-        class="add-btn"
-        @click="openAddWorker"
-      />
-      <q-btn
-        v-else
-        color="primary"
-        icon="add"
-        :label="t('botDetail.addLog')"
-        class="add-btn add-btn--logs"
-        @click="openAddLog"
-      />
+      <div v-if="activeTab === 'workers'" class="tab-actions">
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="t('botDetail.newWorker')"
+          class="add-btn"
+          @click="openAddWorker"
+        />
+        <q-btn
+          :color="workersStore.hasActiveFilter ? 'secondary' : 'grey-7'"
+          :outline="!workersStore.hasActiveFilter"
+          icon="filter_list"
+          class="filter-btn"
+          @click="showWorkerFilter = true"
+        >
+          <q-badge
+            v-if="workersStore.hasActiveFilter"
+            color="negative"
+            floating
+            rounded
+          />
+        </q-btn>
+        <q-btn
+          flat
+          icon="history"
+          class="history-btn"
+          @click="showWorkerHistory = true"
+        >
+          <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
+        </q-btn>
+      </div>
+      <div v-else class="tab-actions">
+        <q-btn
+          color="primary"
+          icon="add"
+          :label="t('botDetail.addLog')"
+          class="add-btn add-btn--logs"
+          @click="openAddLog"
+        />
+        <q-btn
+          :color="hasLogFilter ? 'secondary' : 'grey-7'"
+          :outline="!hasLogFilter"
+          icon="filter_list"
+          class="filter-btn"
+          @click="showLogFilter = true"
+        >
+          <q-badge
+            v-if="hasLogFilter"
+            color="negative"
+            floating
+            rounded
+          />
+        </q-btn>
+        <q-btn
+          flat
+          icon="history"
+          class="history-btn"
+          @click="showLogHistory = true"
+        >
+          <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
+        </q-btn>
+      </div>
     </div>
 
     <!-- Content -->
@@ -168,7 +214,10 @@
             <q-card v-for="log in botLogs" :key="log.id" class="log-card">
               <q-card-section class="log-card__content">
                 <div class="log-card__header">
-                  <q-badge class="worker-badge">
+                  <q-badge
+                    class="worker-badge worker-badge--clickable"
+                    @click="goToWorker(log.worker)"
+                  >
                     {{ getWorkerName(log.worker) }}
                   </q-badge>
                   <q-btn
@@ -231,7 +280,10 @@
                 <tr v-for="log in botLogs" :key="log.id">
                   <td class="col-message">{{ log.message }}</td>
                   <td class="col-worker">
-                    <q-badge class="worker-badge">
+                    <q-badge
+                      class="worker-badge worker-badge--clickable"
+                      @click="goToWorker(log.worker)"
+                    >
                       {{ getWorkerName(log.worker) }}
                     </q-badge>
                   </td>
@@ -302,6 +354,39 @@
 
     <!-- Settings Drawer -->
     <SettingsDrawer v-model="showSettings" />
+
+    <!-- Worker Filter Drawer -->
+    <FilterDrawer
+      v-model="showWorkerFilter"
+      :fields="workerFilterFields"
+      :initial-filter="workerInitialFilter"
+      @apply="handleWorkerFilterApply"
+    />
+
+    <!-- Worker Filter History Drawer -->
+    <FilterHistoryDrawer
+      v-model="showWorkerHistory"
+      store-prefix="workers"
+      @apply="handleWorkerHistoryApply"
+      @edit="handleWorkerHistoryEdit"
+    />
+
+    <!-- Log Filter Drawer -->
+    <FilterDrawer
+      v-model="showLogFilter"
+      :fields="logFilterFields"
+      :status-options="logWorkerOptions"
+      :initial-filter="logInitialFilter"
+      @apply="handleLogFilterApply"
+    />
+
+    <!-- Log Filter History Drawer -->
+    <FilterHistoryDrawer
+      v-model="showLogHistory"
+      store-prefix="logs"
+      @apply="handleLogHistoryApply"
+      @edit="handleLogHistoryEdit"
+    />
   </q-page>
 </template>
 
@@ -313,15 +398,24 @@ import { useQuasar } from 'quasar';
 import { useBotsStore } from 'stores/bots-store';
 import { useWorkersStore } from 'stores/workers-store';
 import { useLogsStore } from 'stores/logs-store';
-import type { Bot, Worker, Log } from '@abernardo/api-client';
+import type { Worker, Log } from '@abernardo/api-client';
 import WorkerCard from 'components/WorkerCard.vue';
 import AddBotDrawer from 'components/AddBotDrawer.vue';
 import AddWorkerDrawer from 'components/AddWorkerDrawer.vue';
 import AddLogDrawer from 'components/AddLogDrawer.vue';
 import SettingsDrawer from 'components/SettingsDrawer.vue';
+import FilterDrawer from 'components/FilterDrawer.vue';
+import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
 import { useDateTime } from 'src/composables/useDateTime';
+import { saveFilterHistory } from 'src/utils/filter-history';
+import type { FilterQuery } from '@abernardo/api-client';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// Format number according to current locale
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat(locale.value).format(value);
+}
 const { formatDateTime, formatRelativeTime } = useDateTime();
 const $q = useQuasar();
 const route = useRoute();
@@ -345,6 +439,42 @@ const logsLoading = ref(false);
 
 const isMobile = computed(() => $q.screen.lt.sm);
 
+// Worker filter configuration
+const workerFilterFields = computed(() => [
+  { value: 'name', label: t('queryBuilder.fields.name'), type: 'string' as const },
+  { value: 'description', label: t('queryBuilder.fields.description'), type: 'string' as const },
+  { value: 'created', label: t('queryBuilder.fields.created'), type: 'date' as const },
+]);
+
+// Worker filter state
+const showWorkerFilter = ref(false);
+const showWorkerHistory = ref(false);
+const workerInitialFilter = ref<FilterQuery | null>(null);
+
+// Log filter configuration
+const logFilterFields = computed(() => [
+  { value: 'message', label: t('queryBuilder.fields.message'), type: 'string' as const },
+  { value: 'worker', label: t('logs.worker'), type: 'status' as const },
+  { value: 'created', label: t('queryBuilder.fields.created'), type: 'date' as const },
+]);
+
+// Log filter state
+const showLogFilter = ref(false);
+const showLogHistory = ref(false);
+const logInitialFilter = ref<FilterQuery | null>(null);
+const activeLogFilter = ref<FilterQuery | null>(null);
+
+// Worker options for log filter (id as value, name as label)
+const logWorkerOptions = computed(() => {
+  return workersStore.workers.map(worker => ({
+    label: worker.name,
+    value: worker.id,
+  }));
+});
+
+// Check if log filter is active (use store's hasActiveFilter)
+const hasLogFilter = computed(() => logsStore.hasActiveFilter);
+
 const statusLabel = computed(() => {
   if (!bot.value) return '';
   switch (bot.value.status) {
@@ -359,23 +489,25 @@ const statusLabel = computed(() => {
   }
 });
 
-const botWorkers = computed(() => {
-  return workersStore.workers.filter(w => w.bot === botId.value);
-});
+// Workers and logs are already filtered by botId on the backend
+const botWorkers = computed(() => workersStore.workers);
 
 const botLogs = computed(() => {
-  return logsStore.logs
-    .filter(l => l.bot === botId.value)
-    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+  return [...logsStore.logs].sort(
+    (a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()
+  );
 });
 
-const workersCount = computed(() => botWorkers.value.length);
-const logsCount = computed(() => botLogs.value.length);
+// Use store pagination counts (reflects filtered results from backend)
+const workersCount = computed(() => workersStore.pagination.count);
+const logsCount = computed(() => logsStore.pagination.count);
 
+// Workers already include logsCount from the backend
 const workersWithLogs = computed(() => {
   return botWorkers.value.map(worker => ({
     ...worker,
-    logsCount: logsStore.logs.filter(l => l.worker === worker.id).length,
+    // Use logsCount from backend (already included in worker response)
+    logsCount: (worker as any).logsCount ?? 0,
   }));
 });
 
@@ -384,6 +516,12 @@ function getWorkerName(workerId: string): string {
   return worker?.name || workerId;
 }
 
+function goToWorker(workerId: string) {
+  router.push({
+    name: 'worker-detail',
+    params: { id: botId.value, workerId },
+  });
+}
 
 function goBack() {
   router.push({ name: 'home' });
@@ -472,8 +610,86 @@ function handleLogSaved() {
   loadData();
 }
 
+async function handleWorkerFilterApply(filter: FilterQuery, nlQuery?: string) {
+  try {
+    workersLoading.value = true;
+
+    // Pass botId as first parameter, and user filter as third parameter
+    await workersStore.fetchWorkers(botId.value, true, filter);
+
+    // Save to history if we have a natural language query (save without bot filter)
+    if (nlQuery && Object.keys(filter).length > 0) {
+      await saveFilterHistory(nlQuery, filter, 'workers');
+    }
+
+    const hasFilter = Object.keys(filter).length > 0;
+    $q.notify({
+      type: 'positive',
+      message: hasFilter
+        ? t('queryBuilder.filterApplied', { count: workersStore.workerCount })
+        : t('queryBuilder.filterCleared'),
+    });
+  } catch (err: any) {
+    $q.notify({
+      type: 'negative',
+      message: err.message || t('errors.generic'),
+    });
+  } finally {
+    workersLoading.value = false;
+  }
+}
+
+function handleWorkerHistoryApply(filter: Record<string, unknown>) {
+  handleWorkerFilterApply(filter as FilterQuery);
+}
+
+function handleWorkerHistoryEdit(filter: Record<string, unknown>) {
+  workerInitialFilter.value = filter as FilterQuery;
+  showWorkerFilter.value = true;
+}
+
+async function handleLogFilterApply(filter: FilterQuery, nlQuery?: string) {
+  try {
+    logsLoading.value = true;
+    activeLogFilter.value = Object.keys(filter).length > 0 ? filter : null;
+
+    // Fetch logs with botId and the user filter
+    await logsStore.fetchLogs(botId.value, undefined, true, filter);
+
+    // Save to history if we have a natural language query
+    if (nlQuery && Object.keys(filter).length > 0) {
+      await saveFilterHistory(nlQuery, filter, 'logs');
+    }
+
+    const hasFilter = Object.keys(filter).length > 0;
+    $q.notify({
+      type: 'positive',
+      message: hasFilter
+        ? t('queryBuilder.filterApplied', { count: logsStore.pagination.count })
+        : t('queryBuilder.filterCleared'),
+    });
+  } catch (err: any) {
+    $q.notify({
+      type: 'negative',
+      message: err.message || t('errors.generic'),
+    });
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
+function handleLogHistoryApply(filter: Record<string, unknown>) {
+  handleLogFilterApply(filter as FilterQuery);
+}
+
+function handleLogHistoryEdit(filter: Record<string, unknown>) {
+  logInitialFilter.value = filter as FilterQuery;
+  showLogFilter.value = true;
+}
+
 async function loadMoreWorkers() {
   try {
+    // Pass botId to maintain the bot filter during pagination
     await workersStore.loadMoreWorkers(botId.value);
   } catch (err: any) {
     $q.notify({
@@ -485,6 +701,7 @@ async function loadMoreWorkers() {
 
 async function loadMoreLogs() {
   try {
+    // Pass botId to maintain the filter during pagination
     await logsStore.loadMoreLogs(botId.value);
   } catch (err: any) {
     $q.notify({
@@ -498,12 +715,13 @@ async function loadData() {
   try {
     await botsStore.fetchBots();
 
+    // Filter workers and logs by current bot using the botId parameter
     workersLoading.value = true;
-    await workersStore.fetchWorkers();
+    await workersStore.fetchWorkers(botId.value);
     workersLoading.value = false;
 
     logsLoading.value = true;
-    await logsStore.fetchLogs();
+    await logsStore.fetchLogs(botId.value);
     logsLoading.value = false;
   } catch (err: any) {
     workersLoading.value = false;
@@ -879,6 +1097,33 @@ watch(
   }
 }
 
+.tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-btn {
+  padding: 8px;
+  border-radius: 8px;
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.history-btn {
+  padding: 8px;
+  border-radius: 8px;
+  min-height: 36px;
+  min-width: 36px;
+
+  .body--light & {
+    color: #6b7280;
+  }
+  .body--dark & {
+    color: #9ca3af;
+  }
+}
+
 .add-btn {
   padding: 8px 16px;
   border-radius: 8px;
@@ -1111,6 +1356,20 @@ watch(
   .body--dark & {
     background: rgba(16, 185, 129, 0.15);
     color: #34d399;
+  }
+
+  &--clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    .body--light &:hover {
+      background: rgba(16, 185, 129, 0.2);
+      transform: translateY(-1px);
+    }
+    .body--dark &:hover {
+      background: rgba(16, 185, 129, 0.25);
+      transform: translateY(-1px);
+    }
   }
 }
 

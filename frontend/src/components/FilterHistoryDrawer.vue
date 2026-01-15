@@ -122,9 +122,12 @@ const { t } = useI18n();
 const { formatDateTimeSimple } = useDateTime();
 const $q = useQuasar();
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: boolean;
-}>();
+  storePrefix?: string;
+}>(), {
+  storePrefix: 'bots',
+});
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
@@ -150,7 +153,7 @@ watch(isOpen, (val) => {
 async function loadHistory() {
   loading.value = true;
   try {
-    history.value = await getFilterHistory();
+    history.value = await getFilterHistory(props.storePrefix);
   } catch (error) {
     console.error('Failed to load filter history:', error);
     $q.notify({
@@ -199,7 +202,7 @@ async function clearAll() {
     persistent: true,
   }).onOk(async () => {
     try {
-      await clearFilterHistory();
+      await clearFilterHistory(props.storePrefix);
       history.value = [];
       $q.notify({
         type: 'positive',

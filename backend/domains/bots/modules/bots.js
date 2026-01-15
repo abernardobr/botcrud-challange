@@ -78,13 +78,23 @@ class BotsModule extends ModuleBase {
         .limit(perPageNum)
         .lean();
 
-      // Transform to match expected format
-      const items = bots.map(bot => ({
-        id: bot._id.toString(),
-        name: bot.name,
-        description: bot.description,
-        status: bot.status,
-        created: bot.created.getTime()
+      // Transform to match expected format and include counts
+      const items = await Promise.all(bots.map(async (bot) => {
+        const botId = bot._id.toString();
+        const [workersCount, logsCount] = await Promise.all([
+          Worker.countByBot(botId),
+          Log.countByBot(botId)
+        ]);
+
+        return {
+          id: botId,
+          name: bot.name,
+          description: bot.description,
+          status: bot.status,
+          created: bot.created.getTime(),
+          workersCount,
+          logsCount
+        };
       }));
 
       return {

@@ -6,7 +6,8 @@
       </div>
       <div class="worker-card__info">
         <h3 class="worker-card__name">{{ worker.name }}</h3>
-        <p class="worker-card__logs">{{ logsCount }} {{ t('logs.title').toLowerCase() }}</p>
+        <p v-if="worker.description" class="worker-card__description">{{ worker.description }}</p>
+        <p class="worker-card__logs">{{ formatNumber(logsCount ?? 0) }} {{ t('logs.title').toLowerCase() }}</p>
       </div>
       <q-icon name="chevron_right" size="20px" class="worker-card__chevron" />
     </q-card-section>
@@ -17,7 +18,12 @@
 import { useI18n } from 'vue-i18n';
 import type { Worker } from '@abernardo/api-client';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// Format number according to current locale
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat(locale.value).format(value);
+}
 
 defineProps<{
   worker: Worker;
@@ -102,6 +108,21 @@ defineEmits<{
     }
     .body--dark & {
       color: #f9fafb;
+    }
+  }
+
+  &__description {
+    font-size: 13px;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .body--light & {
+      color: #6b7280;
+    }
+    .body--dark & {
+      color: #9ca3af;
     }
   }
 

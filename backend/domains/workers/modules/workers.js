@@ -83,12 +83,19 @@ class WorkersModule extends ModuleBase {
         .limit(perPageNum)
         .lean();
 
-      const items = workers.map(worker => ({
-        id: worker._id.toString(),
-        name: worker.name,
-        description: worker.description,
-        bot: worker.bot.toString(),
-        created: worker.created.getTime()
+      // Transform to match expected format and include log counts
+      const items = await Promise.all(workers.map(async (worker) => {
+        const workerId = worker._id.toString();
+        const logsCount = await Log.countByWorker(workerId);
+
+        return {
+          id: workerId,
+          name: worker.name,
+          description: worker.description,
+          bot: worker.bot.toString(),
+          created: worker.created.getTime(),
+          logsCount
+        };
       }));
 
       return {

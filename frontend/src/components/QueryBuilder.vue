@@ -58,21 +58,27 @@
               outlined
               dense
               class="condition-operator"
+              @update:model-value="onOperatorChange(condition, $event)"
             />
 
             <!-- Value Input - changes based on field type -->
             <template v-if="getFieldType(condition.field) === 'status'">
               <q-select
                 v-model="condition.value"
-                :options="statusOptions"
+                :options="filteredStatusOptions"
                 :label="t('queryBuilder.value')"
                 emit-value
                 map-options
                 outlined
                 dense
-                multiple
+                :multiple="condition.operator === '$in' || condition.operator === '$nin'"
+                use-input
+                input-debounce="0"
                 :use-chips="condition.operator === '$in' || condition.operator === '$nin'"
                 class="condition-value"
+                popup-content-class="query-builder-select-popup"
+                @filter="onStatusFilter"
+                @popup-hide="statusFilterText = ''"
               />
             </template>
             <template v-else-if="getFieldType(condition.field) === 'date'">
@@ -144,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -179,6 +185,40 @@ const emit = defineEmits<{
 let conditionIdCounter = 0;
 
 const conditions = ref<Condition[]>([]);
+const statusFilterText = ref('');
+const filteredStatusOptions = ref<{ label: string; value: string }[]>([]);
+const allStatusOptions = ref<{ label: string; value: string }[]>([]);
+
+// Normalize string for diacritics-insensitive comparison
+function normalizeString(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// Filter handler for status select with diacritics support
+function onStatusFilter(val: string, update: (fn: () => void) => void) {
+  statusFilterText.value = val;
+  update(() => {
+    if (!val) {
+      filteredStatusOptions.value = props.statusOptions || [];
+    } else {
+      const needle = normalizeString(val);
+      filteredStatusOptions.value = (props.statusOptions || []).filter(
+        opt => normalizeString(opt.label).includes(needle)
+      );
+    }
+  });
+}
+
+// Initialize filtered options when statusOptions changes
+watch(
+  () => props.statusOptions,
+  (options) => {
+    const optionsList = options || [];
+    filteredStatusOptions.value = optionsList;
+    allStatusOptions.value = optionsList;
+  },
+  { immediate: true }
+);
 
 const fieldOptions = computed(() => props.fields);
 
@@ -241,6 +281,23 @@ function onFieldChange(condition: Condition) {
   const operators = getOperatorsForField(condition.field);
   condition.operator = operators[0]?.value || '$eq';
   condition.value = type === 'status' && (condition.operator === '$in' || condition.operator === '$nin') ? [] : '';
+}
+
+function onOperatorChange(condition: Condition, newOperator: string) {
+  const type = getFieldType(condition.field);
+  if (type === 'status') {
+    const isMultiple = newOperator === '$in' || newOperator === '$nin';
+    const wasMultiple = Array.isArray(condition.value);
+
+    if (isMultiple && !wasMultiple) {
+      // Switching to multiple - convert string to array
+      condition.value = condition.value ? [condition.value as string] : [];
+    } else if (!isMultiple && wasMultiple) {
+      // Switching to single - take first value or empty string
+      const arr = condition.value as string[];
+      condition.value = arr.length > 0 ? arr[0] : '';
+    }
+  }
 }
 
 function addCondition() {
@@ -352,6 +409,9 @@ function buildCondition(condition: Condition): Record<string, unknown> {
 
 // Generate human-readable explanation
 const queryExplanation = computed(() => {
+  // Reference allStatusOptions to ensure reactivity when options load
+  const statusOpts = allStatusOptions.value;
+
   if (conditions.value.length === 0) return '';
 
   const validConditions = conditions.value.filter(c => {
@@ -364,7 +424,7 @@ const queryExplanation = computed(() => {
 
   const parts = validConditions.map((condition, index) => {
     const fieldLabel = props.fields.find(f => f.value === condition.field)?.label || condition.field;
-    const explanation = getConditionExplanation(condition, fieldLabel);
+    const explanation = getConditionExplanation(condition, fieldLabel, statusOpts);
 
     if (index === 0) return explanation;
 
@@ -378,8 +438,40 @@ const queryExplanation = computed(() => {
   return t('queryBuilder.explanations.showWhere') + ' ' + parts.join(' ');
 });
 
-function getConditionExplanation(condition: Condition, fieldLabel: string): string {
-  const { operator, value } = condition;
+function getConditionExplanation(
+  condition: Condition,
+  fieldLabel: string,
+  statusOpts: { label: string; value: string }[] = []
+): string {
+  const { field, operator, value } = condition;
+  const fieldType = getFieldType(field);
+  const isStatusField = fieldType === 'status';
+
+  // Helper to get label from statusOpts
+  const getLabel = (id: string): string => {
+    if (!id) return '';
+    const opt = statusOpts.find(o => String(o.value).trim() === String(id).trim());
+    return opt?.label || id;
+  };
+
+  const formatVal = (val: string | string[]): string => {
+    if (!isStatusField) {
+      return Array.isArray(val) ? val.join(', ') : String(val);
+    }
+    if (Array.isArray(val)) {
+      return val.map(getLabel).join(', ');
+    }
+    return getLabel(String(val));
+  };
+
+  const formatArr = (val: string | string[]): string => {
+    const arr = Array.isArray(val) ? val : [val];
+    const displayArr = isStatusField ? arr.map(getLabel) : arr;
+    if (displayArr.length === 0) return '';
+    if (displayArr.length === 1) return displayArr[0];
+    if (displayArr.length === 2) return `${displayArr[0]} ${t('queryBuilder.explanations.or')} ${displayArr[1]}`;
+    return displayArr.slice(0, -1).join(', ') + ` ${t('queryBuilder.explanations.or')} ${displayArr[displayArr.length - 1]}`;
+  };
 
   switch (operator) {
     case '$regex':
@@ -393,38 +485,26 @@ function getConditionExplanation(condition: Condition, fieldLabel: string): stri
     case '$notExists':
       return t('queryBuilder.explanations.notExists', { field: fieldLabel });
     case '$eq':
-      return t('queryBuilder.explanations.equals', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.equals', { field: fieldLabel, value: formatVal(value) });
     case '$ne':
-      return t('queryBuilder.explanations.notEquals', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.notEquals', { field: fieldLabel, value: formatVal(value) });
     case '$gt':
-      return t('queryBuilder.explanations.after', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.after', { field: fieldLabel, value: formatVal(value) });
     case '$gte':
-      return t('queryBuilder.explanations.onOrAfter', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.onOrAfter', { field: fieldLabel, value: formatVal(value) });
     case '$lt':
-      return t('queryBuilder.explanations.before', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.before', { field: fieldLabel, value: formatVal(value) });
     case '$lte':
-      return t('queryBuilder.explanations.onOrBefore', { field: fieldLabel, value: formatValue(value) });
+      return t('queryBuilder.explanations.onOrBefore', { field: fieldLabel, value: formatVal(value) });
     case '$in':
-      return t('queryBuilder.explanations.isAnyOf', { field: fieldLabel, value: formatArrayValue(value) });
+      return t('queryBuilder.explanations.isAnyOf', { field: fieldLabel, value: formatArr(value) });
     case '$nin':
-      return t('queryBuilder.explanations.isNoneOf', { field: fieldLabel, value: formatArrayValue(value) });
+      return t('queryBuilder.explanations.isNoneOf', { field: fieldLabel, value: formatArr(value) });
     default:
       return `${fieldLabel} ${operator} ${value}`;
   }
 }
 
-function formatValue(value: string | string[]): string {
-  if (Array.isArray(value)) return value.join(', ');
-  return String(value);
-}
-
-function formatArrayValue(value: string | string[]): string {
-  const arr = Array.isArray(value) ? value : [value];
-  if (arr.length === 0) return '';
-  if (arr.length === 1) return arr[0];
-  if (arr.length === 2) return `${arr[0]} ${t('queryBuilder.explanations.or')} ${arr[1]}`;
-  return arr.slice(0, -1).join(', ') + ` ${t('queryBuilder.explanations.or')} ${arr[arr.length - 1]}`;
-}
 
 const formattedQuery = computed(() => {
   return JSON.stringify(generatedQuery.value, null, 2);
@@ -825,6 +905,22 @@ defineExpose({ clear, hasValidConditions, getExplanation, loadFromFilter });
   .condition-content {
     position: relative;
     padding-right: 40px;
+  }
+}
+</style>
+
+<style lang="scss">
+// Global style for select popup inside dialogs - must be unscoped
+.query-builder-select-popup {
+  z-index: 7000 !important;
+
+  .q-virtual-scroll__content {
+    pointer-events: auto !important;
+  }
+
+  .q-item {
+    pointer-events: auto !important;
+    cursor: pointer !important;
   }
 }
 </style>

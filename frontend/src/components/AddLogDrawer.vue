@@ -237,6 +237,13 @@ async function handleSubmit() {
 }
 </script>
 
+<style lang="scss">
+// Global styles for the dialog - MUST be unscoped to work
+.q-dialog__inner--right {
+  padding: 0 !important;
+}
+</style>
+
 <style lang="scss" scoped>
 .drawer-card {
   height: 100vh;

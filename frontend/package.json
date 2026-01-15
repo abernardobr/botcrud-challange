@@ -15,7 +15,13 @@
     "build:android": "quasar build -m capacitor -T android",
     "build:ios": "quasar build -m capacitor -T ios",
     "dev:electron": "quasar dev -m electron",
-    "build:electron": "quasar build -m electron"
+    "build:electron": "quasar build -m electron",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:e2e:headed": "cypress run --headed",
+    "test:e2e:chrome": "cypress run --browser chrome",
+    "test:e2e:firefox": "cypress run --browser firefox",
+    "test:e2e:coverage": "cypress run --env coverage=true"
   },
   "dependencies": {
     "@abernardo/api-client": "1.0.6",
@@ -30,14 +36,19 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@cypress/code-coverage": "^3.14.7",
     "@quasar/app-vite": "^1.7.3",
     "@types/node": "^20.10.6",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
+    "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.16",
+    "cypress": "^15.9.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.19.2",
+    "istanbul-lib-coverage": "^3.2.2",
+    "nyc": "^17.1.0",
     "prettier": "^3.1.1",
     "typescript": "^5.3.3",
     "vite-plugin-checker": "^0.6.2",

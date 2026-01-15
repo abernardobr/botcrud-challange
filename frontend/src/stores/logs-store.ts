@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/api';
-import type { Log, CreateLogPayload, UpdateLogPayload } from '@abernardo/api-client';
+import type { Log, CreateLogPayload, UpdateLogPayload, ListLogsQuery, FilterQuery } from '@abernardo/api-client';
 import type { PaginationState } from 'src/types/pagination';
 import { DEFAULT_PER_PAGE } from 'src/types/pagination';
 
@@ -12,6 +12,7 @@ interface LogsState {
   error: string | null;
   botFilter: string | null;
   workerFilter: string | null;
+  activeFilter: FilterQuery | null;
   pagination: PaginationState;
 }
 
@@ -24,6 +25,7 @@ export const useLogsStore = defineStore('logs', {
     error: null,
     botFilter: null,
     workerFilter: null,
+    activeFilter: null,
     pagination: {
       count: 0,
       page: 0,
@@ -57,28 +59,52 @@ export const useLogsStore = defineStore('logs', {
     },
 
     logCount: (state) => state.pagination.count,
+
+    hasActiveFilter: (state) => {
+      return state.activeFilter !== null && Object.keys(state.activeFilter).length > 0;
+    },
   },
 
   actions: {
-    async fetchLogs(botId?: string, workerId?: string, reset = true) {
+    async fetchLogs(botId?: string, workerId?: string, reset = true, filter?: FilterQuery) {
       if (reset) {
         this.loading = true;
         this.logs = [];
         this.pagination.page = 0;
+        // Store the filter for subsequent loadMore calls
+        if (filter !== undefined) {
+          this.activeFilter = filter && Object.keys(filter).length > 0 ? filter : null;
+        }
       } else {
         this.loadingMore = true;
       }
       this.error = null;
 
       try {
-        const query: Record<string, string | number> = {
+        // Build the query with proper typing
+        const query: Record<string, unknown> = {
           page: this.pagination.page,
           perPage: this.pagination.perPage,
         };
-        if (botId) query.bot = botId;
-        if (workerId) query.worker = workerId;
 
-        const response = await api.logs.list(query);
+        // Explicitly add bot filter if provided
+        if (botId) {
+          query.bot = botId;
+        }
+
+        // Explicitly add worker filter if provided
+        if (workerId) {
+          query.worker = workerId;
+        }
+
+        // Use the stored activeFilter or the provided filter
+        const filterToUse = filter !== undefined ? filter : this.activeFilter;
+        if (filterToUse && Object.keys(filterToUse).length > 0) {
+          // Base64 encode the filter for safe URL transport
+          query.filter = btoa(JSON.stringify(filterToUse));
+        }
+
+        const response = await api.logs.list(query as ListLogsQuery);
 
         if (reset) {
           this.logs = response.items;
@@ -105,7 +131,8 @@ export const useLogsStore = defineStore('logs', {
       if (!this.pagination.hasMore || this.loadingMore) return;
 
       this.pagination.page += 1;
-      await this.fetchLogs(botId, workerId, false);
+      // Use the stored activeFilter for pagination
+      await this.fetchLogs(botId, workerId, false, this.activeFilter || undefined);
     },
 
     async fetchLogsByBot(botId: string) {
@@ -202,6 +229,14 @@ export const useLogsStore = defineStore('logs', {
       this.workerFilter = null;
     },
 
+    setFilter(filter: FilterQuery | null) {
+      this.activeFilter = filter && Object.keys(filter).length > 0 ? filter : null;
+    },
+
+    clearFilter() {
+      this.activeFilter = null;
+    },
+
     clearError() {
       this.error = null;
     },
@@ -214,6 +249,7 @@ export const useLogsStore = defineStore('logs', {
         hasMore: false,
       };
       this.logs = [];
+      this.activeFilter = null;
     },
   },
 });
