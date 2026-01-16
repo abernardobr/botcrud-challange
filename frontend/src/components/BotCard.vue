@@ -47,9 +47,11 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Bot } from '@abernardo/api-client';
 import { useDateTime } from 'src/composables/useDateTime';
+import { useStatus } from 'src/composables/useStatus';
 
 const { t } = useI18n();
 const { formatNumber, formatDate } = useDateTime();
+const { getStatusBadgeLabel } = useStatus();
 
 const props = defineProps<{
   bot: Bot;
@@ -63,18 +65,7 @@ defineEmits<{
 
 const formattedDate = computed(() => formatDate(props.bot.created));
 
-const statusLabel = computed(() => {
-  switch (props.bot.status) {
-    case 'ENABLED':
-      return t('bots.statusEnabled').toUpperCase();
-    case 'DISABLED':
-      return t('bots.statusDisabled').toUpperCase();
-    case 'PAUSED':
-      return t('bots.statusPaused').toUpperCase();
-    default:
-      return props.bot.status;
-  }
-});
+const statusLabel = computed(() => getStatusBadgeLabel(props.bot.status));
 </script>
 
 <style lang="scss" scoped>

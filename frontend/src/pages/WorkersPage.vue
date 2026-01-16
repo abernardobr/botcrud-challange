@@ -1,5 +1,5 @@
 <template>
-  <q-page class="workers-page">
+  <q-page class="workers-page" data-testid="workers-page">
     <!-- Header -->
     <header class="page-header">
       <div class="header-left">
@@ -9,8 +9,9 @@
           icon="arrow_back"
           @click="router.push({ name: 'home' })"
           class="back-btn"
+          data-testid="back-btn"
         />
-        <h1 class="page-title">{{ t('workers.title') }} ({{ formatNumber(totalWorkers) }})</h1>
+        <h1 class="page-title" data-testid="page-title">{{ t('workers.title') }} ({{ formatNumber(totalWorkers) }})</h1>
       </div>
       <div class="header-right">
         <q-btn
@@ -19,6 +20,7 @@
           icon="settings"
           @click="showSettings = true"
           class="settings-btn"
+          data-testid="settings-btn"
         />
       </div>
     </header>
@@ -53,6 +55,7 @@
             icon="add"
             :label="t('workers.createWorker')"
             class="add-btn"
+            data-testid="add-worker-btn"
             @click="openAddWorker"
           />
           <q-btn
@@ -60,6 +63,7 @@
             :outline="!workersStore.hasActiveFilter"
             icon="filter_list"
             class="filter-btn"
+            data-testid="filter-btn"
             @click="openFilter"
           >
             <q-badge
@@ -73,6 +77,7 @@
             flat
             icon="history"
             class="history-btn"
+            data-testid="filter-history-btn"
             @click="showFilterHistory = true"
           >
             <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
@@ -80,14 +85,13 @@
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="workersStore.loading && !workersStore.workers.length" class="loading-state">
-        <q-spinner-dots size="40px" color="primary" />
-        <p>{{ t('common.loading') }}</p>
+      <!-- Loading State with Skeletons -->
+      <div v-if="workersStore.loading && !workersStore.workers.length" class="skeleton-loading-state" data-testid="loading-state">
+        <SkeletonList type="worker" :count="6" layout="list" />
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="!workersStore.workers.length" class="empty-state">
+      <div v-else-if="!workersStore.workers.length" class="empty-state" data-testid="empty-state">
         <q-icon name="engineering" size="64px" class="empty-icon" />
         <h3>{{ t('workers.noWorkersFound') }}</h3>
         <p>{{ t('workers.subtitle') }}</p>
@@ -102,7 +106,7 @@
 
       <!-- Workers List -->
       <template v-else>
-        <div class="workers-list">
+        <div class="workers-list" data-testid="workers-list">
           <WorkerCard
             v-for="worker in workersWithStats"
             :key="worker.id"
@@ -120,6 +124,7 @@
             icon="expand_more"
             :label="t('common.loadMore')"
             :loading="workersStore.loadingMore"
+            data-testid="load-more-btn"
             @click="loadMore"
           />
         </div>
@@ -163,14 +168,15 @@ import { useQuasar } from 'quasar';
 import { useWorkersStore } from 'stores/workers-store';
 import { useBotsStore } from 'stores/bots-store';
 import { useLogsStore } from 'stores/logs-store';
-import type { Worker, FilterQuery } from '@abernardo/api-client';
+import type { Worker } from '@abernardo/api-client';
 import WorkerCard from 'components/WorkerCard.vue';
 import AddWorkerDrawer from 'components/AddWorkerDrawer.vue';
 import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
-import { saveFilterHistory } from 'src/utils/filter-history';
+import { SkeletonList } from 'components/skeletons';
 import { useDateTime } from 'src/composables/useDateTime';
+import { useFilterManagement } from 'src/composables/useFilterManagement';
 
 const { t } = useI18n();
 const { formatNumber } = useDateTime();
@@ -183,10 +189,23 @@ const logsStore = useLogsStore();
 
 const showAddWorker = ref(false);
 const showSettings = ref(false);
-const showFilterDrawer = ref(false);
-const showFilterHistory = ref(false);
 const editingWorker = ref<Worker | null>(null);
-const initialFilter = ref<Record<string, unknown> | undefined>(undefined);
+
+// Use filter management composable
+const {
+  showFilterDrawer,
+  showFilterHistory,
+  initialFilter,
+  handleFilterApply,
+  handleHistoryApply,
+  handleHistoryEdit,
+  openFilter,
+} = useFilterManagement({
+  storePrefix: 'workers-page',
+  fetchFn: (filter) => workersStore.fetchWorkers(undefined, true, filter),
+  getCount: () => workersStore.workerCount,
+  hasActiveFilter: () => workersStore.hasActiveFilter,
+});
 
 // Total counts from pagination
 const totalWorkers = computed(() => workersStore.pagination.count);
@@ -239,47 +258,6 @@ async function loadMore() {
       message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
-}
-
-async function handleFilterApply(filter: FilterQuery, explanation: string) {
-  try {
-    await workersStore.fetchWorkers(undefined, true, filter);
-
-    // Save to history if filter has content
-    if (filter && Object.keys(filter).length > 0) {
-      try {
-        await saveFilterHistory(explanation, filter, 'workers-page');
-      } catch (historyErr) {
-        console.error('Failed to save filter history:', historyErr);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: workersStore.hasActiveFilter
-        ? t('queryBuilder.filterApplied', { count: workersStore.workerCount })
-        : t('queryBuilder.filterCleared'),
-    });
-  } catch (err: unknown) {
-    $q.notify({
-      type: 'negative',
-      message: err instanceof Error ? err.message : t('errors.generic'),
-    });
-  }
-}
-
-async function handleHistoryApply(filter: Record<string, unknown>) {
-  await handleFilterApply(filter as FilterQuery, '');
-}
-
-function handleHistoryEdit(filter: Record<string, unknown>) {
-  initialFilter.value = filter;
-  showFilterDrawer.value = true;
-}
-
-function openFilter() {
-  initialFilter.value = undefined;
-  showFilterDrawer.value = true;
 }
 
 async function loadData() {
@@ -544,7 +522,10 @@ onMounted(() => {
   }
 }
 
-.loading-state,
+.skeleton-loading-state {
+  padding: 8px 0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

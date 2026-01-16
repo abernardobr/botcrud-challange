@@ -14,7 +14,9 @@
     </header>
 
     <!-- Stats Bar -->
+    <SkeletonStats v-if="botsStore.loading && !botsStore.bots.length" data-testid="skeleton-stats-loading" />
     <HomeStats
+      v-else
       :bots-count="totalBots"
       :workers-count="totalWorkers"
       :logs-count="totalLogs"
@@ -53,6 +55,7 @@
             flat
             icon="history"
             class="history-btn"
+            data-testid="filter-history-btn"
             @click="showFilterHistory = true"
           >
             <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
@@ -60,10 +63,9 @@
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="botsStore.loading && !botsStore.bots.length" class="loading-state" data-testid="loading-state">
-        <q-spinner-dots size="40px" color="primary" />
-        <p>{{ t('common.loading') }}</p>
+      <!-- Loading State with Skeletons -->
+      <div v-if="botsStore.loading && !botsStore.bots.length" class="skeleton-loading-state" data-testid="loading-state">
+        <SkeletonList type="bot" :count="6" layout="grid" />
       </div>
 
       <!-- Empty State -->
@@ -152,11 +154,14 @@ import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
 import HomeStats from 'components/HomeStats.vue';
+import { SkeletonList, SkeletonStats } from 'components/skeletons';
 import { useDateTime } from 'src/composables/useDateTime';
+import { useStatus } from 'src/composables/useStatus';
 import { useFilterManagement } from 'src/composables/useFilterManagement';
 
 const { t } = useI18n();
 const { formatNumber } = useDateTime();
+const { statusOptions: filterStatusOptions } = useStatus();
 const $q = useQuasar();
 const router = useRouter();
 const botsStore = useBotsStore();
@@ -206,12 +211,6 @@ const filterFields = computed(() => [
   { value: 'description', label: t('queryBuilder.fields.description'), type: 'string' as const },
   { value: 'status', label: t('queryBuilder.fields.status'), type: 'status' as const },
   { value: 'created', label: t('queryBuilder.fields.created'), type: 'date' as const },
-]);
-
-const filterStatusOptions = computed(() => [
-  { label: t('bots.statusEnabled'), value: 'ENABLED' },
-  { label: t('bots.statusDisabled'), value: 'DISABLED' },
-  { label: t('bots.statusPaused'), value: 'PAUSED' },
 ]);
 
 function openAddBot() {
@@ -375,7 +374,10 @@ onMounted(() => {
   }
 }
 
-.loading-state,
+.skeleton-loading-state {
+  padding: 8px 0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

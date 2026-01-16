@@ -4,6 +4,7 @@
     position="bottom"
     transition-show="slide-up"
     transition-hide="slide-down"
+    data-testid="settings-drawer"
   >
     <q-card :class="['settings-drawer', drawerWidthClass]">
       <!-- Header -->
@@ -16,19 +17,21 @@
           icon="close"
           @click="isOpen = false"
           class="settings-close-btn"
+          data-testid="settings-close-btn"
         />
       </q-card-section>
 
       <!-- Content -->
       <q-card-section class="settings-content">
         <!-- Theme Section -->
-        <div class="settings-section">
+        <div class="settings-section" data-testid="settings-theme-section">
           <h3 class="settings-section-title">{{ t('home.theme') }}</h3>
-          <div class="theme-options">
+          <div class="theme-options" data-testid="settings-theme-options">
             <button
               v-for="theme in themeOptions"
               :key="theme.value"
               :class="['theme-option', { 'theme-option--active': appStore.themeMode === theme.value }]"
+              :data-testid="`settings-theme-${theme.value}`"
               @click="appStore.setTheme(theme.value)"
             >
               <q-icon :name="theme.icon" size="20px" />
@@ -38,13 +41,14 @@
         </div>
 
         <!-- Language Section -->
-        <div class="settings-section">
+        <div class="settings-section" data-testid="settings-language-section">
           <h3 class="settings-section-title">{{ t('settings.language') }}</h3>
-          <div class="language-options">
+          <div class="language-options" data-testid="settings-language-options">
             <button
               v-for="lang in languageOptions"
               :key="lang.value"
               :class="['language-option', { 'language-option--active': appStore.locale === lang.value }]"
+              :data-testid="`settings-language-${lang.value}`"
               @click="appStore.setLocale(lang.value)"
             >
               <span class="language-flag">{{ lang.flag }}</span>

@@ -6,6 +6,7 @@
     transition-show="slide-up"
     transition-hide="slide-down"
     :persistent="false"
+    data-testid="filter-drawer"
   >
     <q-card class="filter-drawer-card">
       <!-- Handle bar for visual cue -->
@@ -27,6 +28,7 @@
             icon="close"
             @click="handleClose"
             class="drawer-close-btn"
+            data-testid="filter-close-btn"
           />
         </div>
         <p class="drawer-subtitle">{{ t('queryBuilder.filterSubtitle') }}</p>
@@ -52,6 +54,7 @@
           @click="handleClear"
           class="action-btn action-btn--clear"
           :disable="!hasConditions"
+          data-testid="filter-clear-all-btn"
         />
         <q-btn
           flat
@@ -60,6 +63,7 @@
           icon="filter_alt_off"
           @click="handleClearFilter"
           class="action-btn action-btn--clear-filter"
+          data-testid="filter-clear-filter-btn"
         />
         <div class="spacer"></div>
         <q-btn
@@ -68,6 +72,7 @@
           :label="t('common.cancel')"
           @click="handleClose"
           class="action-btn action-btn--cancel"
+          data-testid="filter-cancel-btn"
         />
         <q-btn
           no-caps
@@ -75,6 +80,7 @@
           icon="check"
           @click="handleApply"
           class="action-btn action-btn--apply"
+          data-testid="filter-apply-btn"
         />
       </q-card-actions>
     </q-card>
@@ -84,7 +90,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import QueryBuilder from './QueryBuilder.vue';
+import { QueryBuilder } from './query-builder';
 
 const { t } = useI18n();
 

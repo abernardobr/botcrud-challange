@@ -9,6 +9,7 @@ interface AppState {
   themeMode: ThemeMode;
   locale: SupportedLocale;
   sidebarOpen: boolean;
+  pageLoading: boolean;
 }
 
 const STORAGE_KEYS = {
@@ -21,12 +22,14 @@ export const useAppStore = defineStore('app', {
     themeMode: (LocalStorage.getItem(STORAGE_KEYS.THEME) as ThemeMode) || 'auto',
     locale: (LocalStorage.getItem(STORAGE_KEYS.LOCALE) as SupportedLocale) || 'en-US',
     sidebarOpen: true,
+    pageLoading: false,
   }),
 
   getters: {
     isDark: () => Dark.isActive,
     currentLocale: (state) => state.locale,
     currentTheme: (state) => state.themeMode,
+    isPageLoading: (state) => state.pageLoading,
   },
 
   actions: {
@@ -49,6 +52,10 @@ export const useAppStore = defineStore('app', {
 
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen;
+    },
+
+    setPageLoading(loading: boolean) {
+      this.pageLoading = loading;
     },
 
     initializeApp() {

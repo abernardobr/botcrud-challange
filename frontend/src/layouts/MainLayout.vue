@@ -1,9 +1,9 @@
 <template>
   <q-layout view="hHh lpR fFf">
-    <q-page-container class="page-container">
-      <router-view v-slot="{ Component }">
-        <transition :name="transitionName">
-          <component :is="Component" :key="$route.path" class="page-view" />
+    <q-page-container>
+      <router-view v-slot="{ Component, route }">
+        <transition :name="transitionName" mode="out-in">
+          <component :is="Component" :key="route.path" />
         </transition>
       </router-view>
     </q-page-container>
@@ -18,16 +18,16 @@ import { useAppStore } from 'stores/app-store';
 const appStore = useAppStore();
 const router = useRouter();
 
-const transitionName = ref('slide-forward');
+const transitionName = ref('slide-left');
 
-// Track navigation direction based on navigation hierarchy
-// home -> bot-detail -> worker-detail (forward = deeper)
-// worker-detail -> bot-detail -> home (back = shallower)
+// Track navigation direction based on route hierarchy depth
 const routeDepth: Record<string, number> = {
   'home': 0,
+  'workers': 1,
+  'logs': 1,
+  'statistics': 1,
   'bot-detail': 1,
   'worker-detail': 2,
-  'statistics': 1,
 };
 
 router.beforeEach((to, from) => {
@@ -35,11 +35,14 @@ router.beforeEach((to, from) => {
   const fromDepth = routeDepth[from.name as string] ?? 0;
 
   if (toDepth > fromDepth) {
-    transitionName.value = 'slide-forward';
+    // Going deeper - slide left (new page comes from right)
+    transitionName.value = 'slide-left';
   } else if (toDepth < fromDepth) {
-    transitionName.value = 'slide-back';
+    // Going back - slide right (new page comes from left)
+    transitionName.value = 'slide-right';
   } else {
-    transitionName.value = 'slide-forward';
+    // Same level - simple fade
+    transitionName.value = 'fade';
   }
 });
 
@@ -49,7 +52,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss">
-// Global styles for the app
+// Global body backgrounds
 .body--light {
   background: #f8fafc;
 }
@@ -58,17 +61,9 @@ onMounted(() => {
   background: #0f0f14;
 }
 
-.page-container {
-  position: relative;
-  overflow-x: hidden;
+// Ensure q-page-container fills viewport and has consistent background
+.q-page-container {
   min-height: 100vh;
-}
-
-.page-view {
-  width: 100%;
-  min-height: 100vh;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 
   .body--light & {
     background: #f8fafc;
@@ -79,67 +74,92 @@ onMounted(() => {
   }
 }
 
-// Forward transition: new page slides in from right, covering the old page
-.slide-forward-enter-active,
-.slide-forward-leave-active {
-  transition: transform 0.3s ease-out;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
+// ============================================
+// SLIDE LEFT - Forward navigation (out-in mode)
+// Old page exits left, new page enters from right
+// ============================================
+.slide-left-enter-active {
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.slide-forward-enter-active {
-  z-index: 2;
+.slide-left-leave-active {
+  transition: transform 0.2s cubic-bezier(0.55, 0.055, 0.675, 0.19),
+              opacity 0.2s cubic-bezier(0.55, 0.055, 0.675, 0.19);
 }
 
-.slide-forward-leave-active {
-  z-index: 1;
+.slide-left-enter-from {
+  transform: translateX(30px);
+  opacity: 0;
 }
 
-.slide-forward-enter-from {
-  transform: translate3d(100%, 0, 0);
+.slide-left-enter-to {
+  transform: translateX(0);
+  opacity: 1;
 }
 
-.slide-forward-enter-to,
-.slide-forward-leave-from,
-.slide-forward-leave-to {
-  transform: translate3d(0, 0, 0);
+.slide-left-leave-from {
+  transform: translateX(0);
+  opacity: 1;
 }
 
-// Back transition: current page slides out to right, uncovering the page below
-.slide-back-enter-active,
-.slide-back-leave-active {
-  transition: transform 0.3s ease-out;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
+.slide-left-leave-to {
+  transform: translateX(-30px);
+  opacity: 0;
 }
 
-.slide-back-enter-active {
-  z-index: 1;
+// ============================================
+// SLIDE RIGHT - Back navigation (out-in mode)
+// Old page exits right, new page enters from left
+// ============================================
+.slide-right-enter-active {
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.slide-back-leave-active {
-  z-index: 2;
+.slide-right-leave-active {
+  transition: transform 0.2s cubic-bezier(0.55, 0.055, 0.675, 0.19),
+              opacity 0.2s cubic-bezier(0.55, 0.055, 0.675, 0.19);
 }
 
-.slide-back-enter-from,
-.slide-back-enter-to,
-.slide-back-leave-from {
-  transform: translate3d(0, 0, 0);
+.slide-right-enter-from {
+  transform: translateX(-30px);
+  opacity: 0;
 }
 
-.slide-back-leave-to {
-  transform: translate3d(100%, 0, 0);
+.slide-right-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-right-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.slide-right-leave-to {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+// ============================================
+// FADE - Same level navigation (out-in mode)
+// ============================================
+.fade-enter-active {
+  transition: opacity 0.2s ease-out;
+}
+
+.fade-leave-active {
+  transition: opacity 0.15s ease-in;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.fade-enter-to,
+.fade-leave-from {
+  opacity: 1;
 }
 </style>

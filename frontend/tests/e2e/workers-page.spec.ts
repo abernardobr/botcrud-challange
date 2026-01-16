@@ -79,8 +79,12 @@ test.describe('WorkersPage', () => {
     });
 
     test('should navigate to worker detail when clicking a card', async ({ page }) => {
-      await page.locator('[class*="worker-card"], .q-card').first().click();
-      await expect(page).toHaveURL(/\/worker\//);
+      // Use specific worker-card class to avoid clicking other q-cards
+      const workerCard = page.locator('.worker-card').first();
+      await expect(workerCard).toBeVisible({ timeout: 10000 });
+      await workerCard.click();
+      // Worker detail route is /bot/{botId}/worker/{workerId}
+      await expect(page).toHaveURL(/\/bot\/.*\/worker\//, { timeout: 10000 });
     });
   });
 

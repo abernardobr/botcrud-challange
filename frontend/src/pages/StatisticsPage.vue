@@ -1,11 +1,12 @@
 <template>
-  <q-page class="statistics-page">
+  <q-page class="statistics-page" data-testid="statistics-page">
     <header class="page-header">
       <q-btn
         flat
         round
         icon="arrow_back"
         class="back-btn"
+        data-testid="back-btn"
         @click="goBack"
       />
       <div class="breadcrumb">
@@ -16,15 +17,15 @@
     </header>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="loading-container" data-testid="loading-state">
       <q-spinner-dots size="48px" color="primary" />
       <p>{{ t('common.loading') }}</p>
     </div>
 
     <template v-else>
       <!-- Overview Cards -->
-      <section class="overview-section">
-        <div class="overview-card primary">
+      <section class="overview-section" data-testid="overview-section">
+        <div class="overview-card primary" data-testid="overview-card-bots">
           <div class="card-icon">
             <q-icon name="smart_toy" size="28px" />
           </div>
@@ -38,7 +39,7 @@
           </div>
         </div>
 
-        <div class="overview-card secondary">
+        <div class="overview-card secondary" data-testid="overview-card-workers">
           <div class="card-icon">
             <q-icon name="engineering" size="28px" />
           </div>
@@ -51,7 +52,7 @@
           </div>
         </div>
 
-        <div class="overview-card tertiary">
+        <div class="overview-card tertiary" data-testid="overview-card-logs">
           <div class="card-icon">
             <q-icon name="description" size="28px" />
           </div>
@@ -64,7 +65,7 @@
           </div>
         </div>
 
-        <div class="overview-card accent">
+        <div class="overview-card accent" data-testid="overview-card-enabled-rate">
           <div class="card-icon">
             <q-icon name="speed" size="28px" />
           </div>
@@ -80,7 +81,7 @@
       </section>
 
       <!-- Charts Grid -->
-      <section class="charts-section">
+      <section class="charts-section" data-testid="charts-section">
         <!-- Row: Bots by Status + Logs Distribution -->
         <div class="charts-row">
           <!-- Bots by Status -->
@@ -131,13 +132,13 @@
       </section>
 
       <!-- Top Performers -->
-      <section class="performers-section">
-        <div class="performers-card">
+      <section class="performers-section" data-testid="performers-section">
+        <div class="performers-card" data-testid="top-bots-card">
           <h3 class="section-title">
             <q-icon name="emoji_events" size="20px" />
             {{ t('statistics.topBots') }}
           </h3>
-          <div class="performers-list">
+          <div class="performers-list" data-testid="top-bots-list">
             <div
               v-for="(bot, index) in topBots"
               :key="bot.id"
@@ -160,12 +161,12 @@
           </div>
         </div>
 
-        <div class="performers-card">
+        <div class="performers-card" data-testid="top-workers-card">
           <h3 class="section-title">
             <q-icon name="workspace_premium" size="20px" />
             {{ t('statistics.topWorkers') }}
           </h3>
-          <div class="performers-list">
+          <div class="performers-list" data-testid="top-workers-list">
             <div
               v-for="(worker, index) in topWorkers"
               :key="worker.id"

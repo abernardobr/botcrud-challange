@@ -1,5 +1,5 @@
 <template>
-  <q-page class="logs-page">
+  <q-page class="logs-page" data-testid="logs-page">
     <!-- Header -->
     <header class="page-header">
       <div class="header-left">
@@ -9,8 +9,9 @@
           icon="arrow_back"
           @click="router.push({ name: 'home' })"
           class="back-btn"
+          data-testid="back-btn"
         />
-        <h1 class="page-title">{{ t('logs.title') }} ({{ formatNumber(totalLogs) }})</h1>
+        <h1 class="page-title" data-testid="page-title">{{ t('logs.title') }} ({{ formatNumber(totalLogs) }})</h1>
       </div>
       <div class="header-right">
         <q-btn
@@ -19,6 +20,7 @@
           icon="settings"
           @click="showSettings = true"
           class="settings-btn"
+          data-testid="settings-btn"
         />
       </div>
     </header>
@@ -53,6 +55,7 @@
             icon="add"
             :label="t('logs.createLog')"
             class="add-btn"
+            data-testid="add-log-btn"
             @click="openAddLog"
             :disable="!botsStore.bots.length"
           />
@@ -61,6 +64,7 @@
             :outline="!logsStore.hasActiveFilter"
             icon="filter_list"
             class="filter-btn"
+            data-testid="filter-btn"
             @click="openFilter"
           >
             <q-badge
@@ -74,6 +78,7 @@
             flat
             icon="history"
             class="history-btn"
+            data-testid="filter-history-btn"
             @click="showFilterHistory = true"
           >
             <q-tooltip>{{ t('filterHistory.historyButton') }}</q-tooltip>
@@ -81,14 +86,13 @@
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="logsStore.loading && !logsStore.logs.length" class="loading-state">
-        <q-spinner-dots size="40px" color="primary" />
-        <p>{{ t('common.loading') }}</p>
+      <!-- Loading State with Skeletons -->
+      <div v-if="logsStore.loading && !logsStore.logs.length" class="skeleton-loading-state" data-testid="loading-state">
+        <SkeletonList type="log" :count="6" layout="list" />
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="!logsStore.logs.length" class="empty-state">
+      <div v-else-if="!logsStore.logs.length" class="empty-state" data-testid="empty-state">
         <q-icon name="receipt_long" size="64px" class="empty-icon" />
         <h3>{{ t('logs.noLogsFound') }}</h3>
         <p>{{ t('logs.subtitle') }}</p>
@@ -104,7 +108,7 @@
 
       <!-- Logs List -->
       <template v-else>
-        <div class="logs-list">
+        <div class="logs-list" data-testid="logs-list">
           <LogCard
             v-for="log in logsStore.logs"
             :key="log.id"
@@ -121,6 +125,7 @@
             icon="expand_more"
             :label="t('common.loadMore')"
             :loading="logsStore.loadingMore"
+            data-testid="load-more-btn"
             @click="loadMore"
           />
         </div>
@@ -148,8 +153,8 @@
     />
 
     <!-- Create/Edit Log Dialog -->
-    <q-dialog v-model="showCreateDialog" persistent>
-      <q-card class="log-dialog-card">
+    <q-dialog v-model="showCreateDialog" persistent data-testid="log-dialog">
+      <q-card class="log-dialog-card" data-testid="log-dialog-card">
         <q-card-section class="dialog-header">
           <h2 class="dialog-title">
             {{ editingLog ? t('logs.editLog') : t('logs.createLog') }}
@@ -182,6 +187,7 @@
                 autogrow
                 :rules="[val => !!val || t('common.required')]"
                 class="form-input"
+                data-testid="log-message-input"
               />
             </div>
 
@@ -200,6 +206,7 @@
                 map-options
                 :rules="[val => !!val || t('common.required')]"
                 class="form-input"
+                data-testid="log-bot-select"
                 @update:model-value="onFormBotChange"
               />
             </div>
@@ -220,6 +227,7 @@
                 :rules="[val => !!val || t('common.required')]"
                 :disable="!logForm.bot"
                 class="form-input"
+                data-testid="log-worker-select"
               />
             </div>
           </q-form>
@@ -231,12 +239,14 @@
             :label="t('common.cancel')"
             @click="closeDialog"
             class="action-btn action-btn--cancel"
+            data-testid="log-cancel-btn"
           />
           <q-btn
             :label="t('common.save')"
             @click="saveLog"
             :loading="saving"
             class="action-btn action-btn--save"
+            data-testid="log-save-btn"
           />
         </q-card-actions>
       </q-card>
@@ -252,13 +262,14 @@ import { useQuasar } from 'quasar';
 import { useLogsStore } from 'stores/logs-store';
 import { useBotsStore } from 'stores/bots-store';
 import { useWorkersStore } from 'stores/workers-store';
-import type { Log, FilterQuery, CreateLogPayload, UpdateLogPayload } from '@abernardo/api-client';
+import type { Log, CreateLogPayload, UpdateLogPayload } from '@abernardo/api-client';
 import LogCard from 'components/LogCard.vue';
 import SettingsDrawer from 'components/SettingsDrawer.vue';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import FilterHistoryDrawer from 'components/FilterHistoryDrawer.vue';
-import { saveFilterHistory } from 'src/utils/filter-history';
+import { SkeletonList } from 'components/skeletons';
 import { useDateTime } from 'src/composables/useDateTime';
+import { useFilterManagement } from 'src/composables/useFilterManagement';
 
 const { t } = useI18n();
 const { formatNumber } = useDateTime();
@@ -270,13 +281,26 @@ const botsStore = useBotsStore();
 const workersStore = useWorkersStore();
 
 const showSettings = ref(false);
-const showFilterDrawer = ref(false);
-const showFilterHistory = ref(false);
 const showCreateDialog = ref(false);
 const editingLog = ref<Log | null>(null);
 const saving = ref(false);
-const initialFilter = ref<Record<string, unknown> | undefined>(undefined);
 const formWorkers = ref<typeof workersStore.workers>([]);
+
+// Use filter management composable
+const {
+  showFilterDrawer,
+  showFilterHistory,
+  initialFilter,
+  handleFilterApply,
+  handleHistoryApply,
+  handleHistoryEdit,
+  openFilter,
+} = useFilterManagement({
+  storePrefix: 'logs-page',
+  fetchFn: (filter) => logsStore.fetchLogs(undefined, undefined, true, filter),
+  getCount: () => logsStore.logCount,
+  hasActiveFilter: () => logsStore.hasActiveFilter,
+});
 
 const logForm = ref({
   message: '',
@@ -435,47 +459,6 @@ async function loadMore() {
       message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
-}
-
-async function handleFilterApply(filter: FilterQuery, explanation: string) {
-  try {
-    await logsStore.fetchLogs(undefined, undefined, true, filter);
-
-    // Save to history if filter has content
-    if (filter && Object.keys(filter).length > 0) {
-      try {
-        await saveFilterHistory(explanation, filter, 'logs-page');
-      } catch (historyErr) {
-        console.error('Failed to save filter history:', historyErr);
-      }
-    }
-
-    $q.notify({
-      type: 'positive',
-      message: logsStore.hasActiveFilter
-        ? t('queryBuilder.filterApplied', { count: logsStore.logCount })
-        : t('queryBuilder.filterCleared'),
-    });
-  } catch (err: unknown) {
-    $q.notify({
-      type: 'negative',
-      message: err instanceof Error ? err.message : t('errors.generic'),
-    });
-  }
-}
-
-async function handleHistoryApply(filter: Record<string, unknown>) {
-  await handleFilterApply(filter as FilterQuery, '');
-}
-
-function handleHistoryEdit(filter: Record<string, unknown>) {
-  initialFilter.value = filter;
-  showFilterDrawer.value = true;
-}
-
-function openFilter() {
-  initialFilter.value = undefined;
-  showFilterDrawer.value = true;
 }
 
 async function loadData() {
@@ -740,7 +723,10 @@ onMounted(() => {
   }
 }
 
-.loading-state,
+.skeleton-loading-state {
+  padding: 8px 0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

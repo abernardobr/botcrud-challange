@@ -99,7 +99,16 @@ test.describe('WorkerDetailPage', () => {
       // First, wait for worker name to appear in the worker info card (ensures data is loaded)
       const workerNameEl = page.locator('.worker-name');
       await expect(workerNameEl).toBeVisible({ timeout: 10000 });
-      await expect(workerNameEl).not.toBeEmpty({ timeout: 10000 });
+
+      // Wait for the worker name to have actual content
+      await page.waitForFunction(
+        () => {
+          const el = document.querySelector('.worker-name');
+          return el && el.textContent && el.textContent.trim().length > 0;
+        },
+        { timeout: 10000 }
+      );
+
       const workerName = await workerNameEl.textContent();
 
       // Click edit button (the one in worker-actions with edit icon)
@@ -108,16 +117,18 @@ test.describe('WorkerDetailPage', () => {
       await expect(page.locator('.q-dialog')).toBeVisible({ timeout: 5000 });
 
       // Wait for form to be populated (Quasar uses async watch)
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // Quasar inputs have the actual input nested inside .q-field__native
       const input = page.locator('.q-dialog .q-field__native').first();
 
-      // The input should have the worker name
-      if (workerName) {
-        await expect(input).toHaveValue(workerName.trim(), { timeout: 5000 });
-      } else {
-        await expect(input).not.toHaveValue('', { timeout: 5000 });
+      // The input should not be empty (form should be pre-filled)
+      await expect(input).not.toHaveValue('', { timeout: 5000 });
+
+      // If we got the worker name, verify it matches
+      if (workerName && workerName.trim()) {
+        const inputValue = await input.inputValue();
+        expect(inputValue).toBe(workerName.trim());
       }
     });
   });

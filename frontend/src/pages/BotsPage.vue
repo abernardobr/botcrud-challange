@@ -183,7 +183,7 @@
             />
             <q-select
               v-model="botForm.status"
-              :options="statusOptionsNoAll"
+              :options="baseStatusOptions"
               :label="t('bots.botStatus')"
               emit-value
               map-options
@@ -208,7 +208,7 @@
     <FilterDrawer
       v-model="showFilterDrawer"
       :fields="filterFields"
-      :status-options="filterStatusOptions"
+      :status-options="baseStatusOptions"
       @apply="handleFilterApply"
     />
   </q-page>
@@ -223,9 +223,11 @@ import { useBotsStore } from 'stores/bots-store';
 import FilterDrawer from 'components/FilterDrawer.vue';
 import type { Bot, BotStatus, CreateBotPayload, UpdateBotPayload, FilterQuery } from '@abernardo/api-client';
 import { useDateTime } from 'src/composables/useDateTime';
+import { useStatus } from 'src/composables/useStatus';
 
 const { t } = useI18n();
 const { formatDateTimeSimple } = useDateTime();
+const { getStatusColor, getStatusLabel, statusOptions: baseStatusOptions } = useStatus();
 const $q = useQuasar();
 const router = useRouter();
 const botsStore = useBotsStore();
@@ -246,17 +248,10 @@ const botForm = ref<{
   status: 'DISABLED',
 });
 
+// Status options with "All" option for filter dropdown
 const statusOptions = computed(() => [
   { label: t('common.all'), value: null },
-  { label: t('bots.statusEnabled'), value: 'ENABLED' },
-  { label: t('bots.statusDisabled'), value: 'DISABLED' },
-  { label: t('bots.statusPaused'), value: 'PAUSED' },
-]);
-
-const statusOptionsNoAll = computed(() => [
-  { label: t('bots.statusEnabled'), value: 'ENABLED' },
-  { label: t('bots.statusDisabled'), value: 'DISABLED' },
-  { label: t('bots.statusPaused'), value: 'PAUSED' },
+  ...baseStatusOptions.value,
 ]);
 
 // Filter configuration for QueryBuilder
@@ -267,35 +262,10 @@ const filterFields = computed(() => [
   { value: 'created', label: t('queryBuilder.fields.created'), type: 'date' as const },
 ]);
 
-const filterStatusOptions = computed(() => [
-  { label: t('bots.statusEnabled'), value: 'ENABLED' },
-  { label: t('bots.statusDisabled'), value: 'DISABLED' },
-  { label: t('bots.statusPaused'), value: 'PAUSED' },
-]);
-
 const bots = computed(() => {
   if (!statusFilter.value) return botsStore.bots;
   return botsStore.bots.filter(b => b.status === statusFilter.value);
 });
-
-function getStatusColor(status: BotStatus) {
-  switch (status) {
-    case 'ENABLED': return 'positive';
-    case 'DISABLED': return 'negative';
-    case 'PAUSED': return 'warning';
-    default: return 'grey';
-  }
-}
-
-function getStatusLabel(status: BotStatus) {
-  switch (status) {
-    case 'ENABLED': return t('bots.statusEnabled');
-    case 'DISABLED': return t('bots.statusDisabled');
-    case 'PAUSED': return t('bots.statusPaused');
-    default: return status;
-  }
-}
-
 
 function goToWorkers(botId: string) {
   router.push({ name: 'workers', query: { bot: botId } });
@@ -352,10 +322,10 @@ async function saveBot() {
       });
     }
     closeDialog();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   } finally {
     saving.value = false;
@@ -375,10 +345,10 @@ function confirmDelete(bot: Bot) {
         type: 'positive',
         message: t('bots.botDeleted'),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       $q.notify({
         type: 'negative',
-        message: err.message || t('errors.generic'),
+        message: err instanceof Error ? err.message : t('errors.generic'),
       });
     }
   });
@@ -387,10 +357,10 @@ function confirmDelete(bot: Bot) {
 async function loadBots() {
   try {
     await botsStore.fetchBots();
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -398,10 +368,10 @@ async function loadBots() {
 async function loadMore() {
   try {
     await botsStore.loadMoreBots(statusFilter.value || undefined);
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }
@@ -415,10 +385,10 @@ async function handleFilterApply(filter: FilterQuery) {
         ? t('queryBuilder.filterApplied', { count: botsStore.botCount })
         : t('queryBuilder.filterCleared'),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     $q.notify({
       type: 'negative',
-      message: err.message || t('errors.generic'),
+      message: err instanceof Error ? err.message : t('errors.generic'),
     });
   }
 }

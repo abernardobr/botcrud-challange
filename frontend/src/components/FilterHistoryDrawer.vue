@@ -5,6 +5,7 @@
     :maximized="$q.screen.lt.sm"
     seamless
     class="filter-history-dialog"
+    data-testid="filter-history-drawer"
   >
     <q-card class="filter-history-drawer">
       <!-- Header -->
@@ -23,6 +24,7 @@
               icon="delete_sweep"
               class="clear-all-btn"
               @click="clearAll"
+              data-testid="filter-history-clear-all-btn"
             >
               <q-tooltip>{{ t('filterHistory.clearAll') }}</q-tooltip>
             </q-btn>
@@ -33,26 +35,27 @@
               icon="close"
               class="close-btn"
               @click="isOpen = false"
+              data-testid="filter-history-close-btn"
             />
           </div>
         </div>
       </q-card-section>
 
       <!-- Loading State -->
-      <q-card-section v-if="loading" class="content-section flex flex-center">
+      <q-card-section v-if="loading" class="content-section flex flex-center" data-testid="filter-history-loading">
         <q-spinner-dots size="40px" color="primary" />
       </q-card-section>
 
       <!-- Empty State -->
-      <q-card-section v-else-if="history.length === 0" class="content-section empty-state">
+      <q-card-section v-else-if="history.length === 0" class="content-section empty-state" data-testid="filter-history-empty">
         <q-icon name="history" size="64px" class="empty-icon" />
         <div class="empty-text">{{ t('filterHistory.empty') }}</div>
       </q-card-section>
 
       <!-- History List -->
-      <q-card-section v-else class="content-section history-list">
+      <q-card-section v-else class="content-section history-list" data-testid="filter-history-list">
         <div class="history-cards">
-          <div v-for="item in history" :key="item.id" class="history-card">
+          <div v-for="item in history" :key="item.id" class="history-card" :data-testid="`filter-history-item-${item.id}`">
             <!-- Card Header with Icon and Date -->
             <div class="card-header">
               <div class="card-icon">
@@ -79,6 +82,7 @@
                 :label="t('filterHistory.apply')"
                 class="card-action-btn card-action-btn--apply"
                 @click="applyFilter(item)"
+                data-testid="filter-history-apply-btn"
               />
               <q-btn
                 flat
@@ -88,6 +92,7 @@
                 :label="t('filterHistory.edit')"
                 class="card-action-btn card-action-btn--edit"
                 @click="editFilter(item)"
+                data-testid="filter-history-edit-btn"
               />
               <q-btn
                 flat
@@ -96,6 +101,7 @@
                 icon="delete_outline"
                 class="card-action-btn card-action-btn--delete"
                 @click="deleteItem(item)"
+                data-testid="filter-history-delete-btn"
               />
             </div>
           </div>
